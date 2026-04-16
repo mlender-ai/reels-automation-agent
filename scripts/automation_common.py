@@ -6,11 +6,12 @@ import re
 import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import urllib.error
+import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -461,16 +462,17 @@ def github_api_request(
     payload: dict[str, Any] | None = None,
     token: str | None = None,
 ) -> Any:
+    import requests
+
     token = token or os.environ.get("GITHUB_TOKEN", "").strip()
     repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
     if not token or not repository:
         raise AutomationError("GITHUB_TOKEN and GITHUB_REPOSITORY are required for GitHub API operations")
 
     url = f"https://api.github.com{path}"
-    data = json.dumps(payload).encode("utf-8") if payload is not None else None
-    request = urllib.request.Request(
-        url,
-        data=data,
+    response = requests.request(
+        method=method,
+        url=url,
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
@@ -478,18 +480,17 @@ def github_api_request(
             "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "reels-automation-agent",
         },
-        method=method,
+        json=payload,
+        timeout=120,
     )
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            raw = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        details = exc.read().decode("utf-8", errors="ignore")
-        raise AutomationError(f"GitHub API {method} {path} failed with HTTP {exc.code}: {details}") from exc
-    return json.loads(raw) if raw else {}
+    if not response.ok:
+        raise AutomationError(f"GitHub API {method} {path} failed with HTTP {response.status_code}: {response.text}")
+    return response.json() if response.text else {}
 
 
 def ensure_github_label(name: str) -> None:
+    import requests
+
     repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
     token = os.environ.get("GITHUB_TOKEN", "").strip()
     if not repository or not token:
@@ -498,9 +499,8 @@ def ensure_github_label(name: str) -> None:
     owner, repo = repository.split("/", 1)
     color = DEFAULT_LABEL_COLORS.get(name, "bfd4f2")
     payload = {"name": name, "color": color}
-    request = urllib.request.Request(
+    response = requests.post(
         f"https://api.github.com/repos/{owner}/{repo}/labels",
-        data=json.dumps(payload).encode("utf-8"),
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
@@ -508,16 +508,12 @@ def ensure_github_label(name: str) -> None:
             "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "reels-automation-agent",
         },
-        method="POST",
+        json=payload,
+        timeout=120,
     )
-    try:
-        with urllib.request.urlopen(request, timeout=120):
-            return
-    except urllib.error.HTTPError as exc:
-        if exc.code == 422:
-            return
-        details = exc.read().decode("utf-8", errors="ignore")
-        raise AutomationError(f"Failed to ensure label {name}: {details}") from exc
+    if response.ok or response.status_code == 422:
+        return
+    raise AutomationError(f"Failed to ensure label {name}: {response.text}")
 
 
 def ensure_github_labels(labels: list[str]) -> None:
