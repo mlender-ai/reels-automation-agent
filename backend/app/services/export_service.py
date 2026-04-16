@@ -1,0 +1,76 @@
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from app.core.constants import ClipStatus, ExportStatus, ProjectStatus
+from app.models.clip_candidate import ClipCandidate
+from app.models.export import Export
+from app.models.project import Project
+from app.models.transcript import Transcript
+from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
+from app.services.subtitle_service import build_subtitle_style, write_clip_srt
+from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
+
+
+def export_clip(db: Session, clip: ClipCandidate, project: Project, transcript: Transcript, source_path: str) -> Export:
+    if clip.status not in {ClipStatus.approved.value, ClipStatus.exported.value}:
+        raise HTTPException(status_code=400, detail="Clip must be approved before export")
+
+    exports_dir = project_exports_dir(project.id)
+    exports_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    base_name = build_export_basename(clip.id, clip.suggested_title, timestamp)
+    output_file = exports_dir / f"{base_name}.mp4"
+    thumbnail_file = exports_dir / f"{base_name}.jpg"
+    export_record = Export(
+        clip_candidate_id=clip.id,
+        status=ExportStatus.processing.value,
+    )
+    db.add(export_record)
+    db.commit()
+    db.refresh(export_record)
+
+    try:
+        subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
+        export_vertical_clip(
+            input_path=resolve_data_path(source_path),
+            output_path=output_file,
+            subtitle_path=subtitle_file,
+            start_time=clip.start_time,
+            duration=clip.duration,
+            preset_style=build_subtitle_style(clip.subtitle_preset),
+        )
+        try:
+            extract_thumbnail(output_file, thumbnail_file, capture_time=min(1.2, max(0.25, clip.duration / 3)))
+            export_record.thumbnail_path = to_relative_data_path(thumbnail_file)
+        except HTTPException:
+            export_record.thumbnail_path = None
+        export_record.output_path = to_relative_data_path(output_file)
+        export_record.subtitle_path = subtitle_relative_path
+        export_record.status = ExportStatus.completed.value
+        clip.status = ClipStatus.exported.value
+        project.status = ProjectStatus.exported.value
+        db.add_all([export_record, clip, project])
+        db.commit()
+        db.refresh(export_record)
+        return export_record
+    except HTTPException as exc:
+        export_record.status = ExportStatus.failed.value
+        clip.status = ClipStatus.approved.value
+        project.status = ProjectStatus.ready_for_review.value
+        db.add_all([export_record, clip, project])
+        db.commit()
+        for path in [output_file, thumbnail_file]:
+            Path(path).unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Export failed: {exc.detail}") from exc
+    except Exception as exc:
+        export_record.status = ExportStatus.failed.value
+        clip.status = ClipStatus.approved.value
+        project.status = ProjectStatus.ready_for_review.value
+        db.add_all([export_record, clip, project])
+        db.commit()
+        for path in [output_file, thumbnail_file]:
+            Path(path).unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Export failed: {exc}") from exc

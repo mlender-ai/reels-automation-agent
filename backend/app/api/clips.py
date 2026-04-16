@@ -1,0 +1,133 @@
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.constants import ClipStatus
+from app.db.session import get_db
+from app.models.clip_candidate import ClipCandidate
+from app.models.export import Export
+from app.models.project import Project
+from app.models.publish_job import PublishJob
+from app.schemas.clip import ClipCandidateRead, ClipCandidateUpdate
+from app.schemas.export import ExportRead
+from app.schemas.publish import PublishJobRead, QueuePublishRequest
+from app.services.export_service import export_clip
+from app.services.project_service import get_project_or_404, latest_source_video, latest_transcript
+from app.services.publish_service import create_publish_job
+from app.services.serializers import serialize_clip, serialize_export, serialize_publish_job
+from app.workers.publish_worker import simulate_publish_job
+
+
+router = APIRouter(tags=["clips"])
+
+
+def get_clip_or_404(db: Session, clip_id: int) -> ClipCandidate:
+    statement = (
+        select(ClipCandidate)
+        .where(ClipCandidate.id == clip_id)
+        .options(
+            selectinload(ClipCandidate.exports),
+            selectinload(ClipCandidate.project).selectinload(Project.source_videos),
+            selectinload(ClipCandidate.project).selectinload(Project.transcripts),
+            selectinload(ClipCandidate.publish_jobs),
+        )
+    )
+    clip = db.scalar(statement)
+    if not clip:
+        raise HTTPException(status_code=404, detail="Clip candidate not found")
+    return clip
+
+
+@router.get("/clips/{clip_id}", response_model=ClipCandidateRead)
+def get_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    return serialize_clip(clip)
+
+
+@router.get("/clips", response_model=list[ClipCandidateRead])
+def list_all_clips_endpoint(
+    statuses: str | None = Query(default=None, description="Comma separated clip statuses"),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    statement = select(ClipCandidate).options(selectinload(ClipCandidate.exports)).order_by(ClipCandidate.created_at.desc())
+    if statuses:
+        allowed = [status.strip() for status in statuses.split(",") if status.strip()]
+        if allowed:
+            statement = statement.where(ClipCandidate.status.in_(allowed))
+    clips = db.scalars(statement).unique().all()
+    return [serialize_clip(clip) for clip in clips]
+
+
+@router.patch("/clips/{clip_id}", response_model=ClipCandidateRead)
+def update_clip_endpoint(clip_id: int, payload: ClipCandidateUpdate, db: Session = Depends(get_db)) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    update_data = payload.model_dump(exclude_unset=True)
+    if "start_time" in update_data:
+        clip.start_time = update_data["start_time"]
+    if "end_time" in update_data:
+        clip.end_time = update_data["end_time"]
+    if clip.end_time <= clip.start_time:
+        raise HTTPException(status_code=422, detail="Clip end_time must be greater than start_time")
+    clip.duration = round(clip.end_time - clip.start_time, 3)
+    for field in ["suggested_title", "suggested_description", "suggested_hashtags", "subtitle_preset"]:
+        if field in update_data:
+            setattr(clip, field, update_data[field])
+    db.add(clip)
+    db.commit()
+    db.refresh(clip)
+    return serialize_clip(get_clip_or_404(db, clip_id))
+
+
+@router.post("/clips/{clip_id}/approve", response_model=ClipCandidateRead)
+def approve_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    clip.status = ClipStatus.approved.value
+    db.add(clip)
+    db.commit()
+    return serialize_clip(get_clip_or_404(db, clip_id))
+
+
+@router.post("/clips/{clip_id}/reject", response_model=ClipCandidateRead)
+def reject_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    clip.status = ClipStatus.rejected.value
+    db.add(clip)
+    db.commit()
+    return serialize_clip(get_clip_or_404(db, clip_id))
+
+
+@router.post("/clips/{clip_id}/export", response_model=ExportRead)
+def export_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    project = get_project_or_404(db, clip.project_id)
+    transcript = latest_transcript(project)
+    source_video = latest_source_video(project)
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Transcript is required before export")
+    if not source_video:
+        raise HTTPException(status_code=400, detail="Source video is required before export")
+    export_record = export_clip(db, clip, project, transcript, source_video.stored_path)
+    refreshed_export = db.scalar(
+        select(Export)
+        .where(Export.id == export_record.id)
+        .options(selectinload(Export.clip_candidate))
+    )
+    return serialize_export(refreshed_export or export_record)
+
+
+@router.post("/clips/{clip_id}/queue-publish", response_model=PublishJobRead)
+def queue_publish_endpoint(
+    clip_id: int,
+    payload: QueuePublishRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    publish_job = create_publish_job(db, clip, payload.platform)
+    background_tasks.add_task(simulate_publish_job, publish_job.id)
+    refreshed = db.scalar(
+        select(PublishJob)
+        .where(PublishJob.id == publish_job.id)
+        .options(selectinload(PublishJob.clip_candidate))
+    )
+    return serialize_publish_job(refreshed or publish_job)

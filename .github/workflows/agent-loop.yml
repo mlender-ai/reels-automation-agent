@@ -1,0 +1,53 @@
+name: Agent Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-loop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  agent-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AI_API_URL: ${{ secrets.AI_API_URL }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
+      AI_TEMPERATURE: ${{ secrets.AI_TEMPERATURE }}
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate AI secrets
+        shell: bash
+        run: |
+          test -n "$AI_API_URL"
+          test -n "$AI_API_KEY"
+          test -n "$AI_MODEL"
+
+      - name: Run agent loop
+        id: agent_loop
+        run: python scripts/run_agent_loop.py
+
+      - name: Upload agent loop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.agent_loop.outputs.artifact_name }}
+          path: ${{ steps.agent_loop.outputs.output_dir }}
+          if-no-files-found: error
+

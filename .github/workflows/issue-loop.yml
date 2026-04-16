@@ -1,0 +1,55 @@
+name: Issue Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 */2 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: issue-loop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  issue-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AI_API_URL: ${{ secrets.AI_API_URL }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
+      AI_TEMPERATURE: ${{ secrets.AI_TEMPERATURE }}
+      AUTO_ISSUE_ENABLED: ${{ secrets.AUTO_ISSUE_ENABLED }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run agent loop
+        id: agent_loop
+        run: python scripts/run_agent_loop.py
+
+      - name: Generate issue report
+        id: issue_report
+        run: python scripts/generate_issue_report.py --agent-run "${{ steps.agent_loop.outputs.output_dir }}"
+
+      - name: Upload issue artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.issue_report.outputs.artifact_name }}
+          path: |
+            ${{ steps.agent_loop.outputs.output_dir }}
+            ${{ steps.issue_report.outputs.output_dir }}
+          if-no-files-found: error
+

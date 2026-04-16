@@ -1,0 +1,25 @@
+{
+  "project_id": 0,
+  "language": "en",
+  "duration_seconds": 67.0,
+  "segments": [
+    { "id": 0, "start": 0.0, "end": 3.0, "text": "Most creators lose the best short before they even notice the hook." },
+    { "id": 1, "start": 3.0, "end": 7.1, "text": "The first mistake is waiting until export day to find the decisive line." },
+    { "id": 2, "start": 7.1, "end": 10.9, "text": "If you flag the key sentence early, the whole editing pass becomes faster." },
+    { "id": 3, "start": 10.9, "end": 14.6, "text": "The second mistake is clipping moments that start too late for vertical attention." },
+    { "id": 4, "start": 14.6, "end": 18.7, "text": "In shortform, the first three seconds decide whether the viewer stays." },
+    { "id": 5, "start": 18.7, "end": 22.8, "text": "That is why I score hooks first, then I look at pacing and payoff." },
+    { "id": 6, "start": 22.8, "end": 26.9, "text": "A strong candidate usually opens with a claim, a surprise, or a concrete list." },
+    { "id": 7, "start": 26.9, "end": 30.9, "text": "You can hear it when someone says here is the real point or this changed everything." },
+    { "id": 8, "start": 30.9, "end": 34.7, "text": "The third mistake is exporting before subtitles are legible on a phone screen." },
+    { "id": 9, "start": 34.7, "end": 38.8, "text": "Clean subtitles are safe, bold subtitles add urgency, and creator style feels more energetic." },
+    { "id": 10, "start": 38.8, "end": 42.6, "text": "None of that matters if the segment ends in a vague half sentence without a payoff." },
+    { "id": 11, "start": 42.6, "end": 46.4, "text": "I want the ending to land like a conclusion, a reveal, or a sharp instruction." },
+    { "id": 12, "start": 46.4, "end": 50.5, "text": "This is the surprising part: the boring cleanup work is what makes fast approval possible." },
+    { "id": 13, "start": 50.5, "end": 54.2, "text": "When the queue already shows title, description, hashtags, and export status, decisions get easier." },
+    { "id": 14, "start": 54.2, "end": 58.4, "text": "Then your job is not to search blindly, it is to approve, reject, and move on." },
+    { "id": 15, "start": 58.4, "end": 62.9, "text": "That shift is the core of a practical local first shortform workflow." },
+    { "id": 16, "start": 62.9, "end": 67.0, "text": "You do not need a giant stack, you need a reliable sequence that works every time." }
+  ]
+}
+

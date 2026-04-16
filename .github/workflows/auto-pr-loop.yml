@@ -1,0 +1,62 @@
+name: Auto PR Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "45 */6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: auto-pr-loop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  auto-pr-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      AI_API_URL: ${{ secrets.AI_API_URL }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
+      AI_TEMPERATURE: ${{ secrets.AI_TEMPERATURE }}
+      AUTO_PR_ENABLED: ${{ secrets.AUTO_PR_ENABLED }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run agent loop
+        id: agent_loop
+        run: python scripts/run_agent_loop.py
+
+      - name: Generate patch bundle
+        id: patch_bundle
+        run: python scripts/generate_patch_bundle.py --agent-run "${{ steps.agent_loop.outputs.output_dir }}"
+
+      - name: Create auto PR
+        id: auto_pr
+        run: python scripts/create_auto_pr.py --bundle "${{ steps.patch_bundle.outputs.bundle_path }}"
+
+      - name: Upload auto PR artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.auto_pr.outputs.artifact_name }}
+          path: |
+            ${{ steps.agent_loop.outputs.output_dir }}
+            ${{ steps.patch_bundle.outputs.output_dir }}
+            ${{ steps.auto_pr.outputs.output_dir }}
+          if-no-files-found: error
+
