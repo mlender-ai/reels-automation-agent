@@ -149,7 +149,10 @@ def main() -> None:
         ]
     )
     raw_response = call_chat_completion(
-        system_prompt="You draft GitHub issue candidates for reels-automation-agent. Return JSON only.",
+        system_prompt=(
+            "You draft GitHub issue candidates for reels-automation-agent. "
+            "Return JSON only. Keep JSON keys in English, but write every user-facing title and body in natural Korean."
+        ),
         user_prompt=user_prompt,
         max_tokens=2200,
     )
