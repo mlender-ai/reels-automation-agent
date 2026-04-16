@@ -48,6 +48,7 @@ export function ClipReviewPage() {
   const validationError = useMemo(() => {
     if (form.end_time <= form.start_time) return "End time must be greater than start time.";
     if (form.end_time - form.start_time < 8) return "Clip duration should remain long enough to make sense on review.";
+    if (form.end_time - form.start_time > 45) return "Keep the review clip at 45 seconds or less so it remains export-ready.";
     return "";
   }, [form.end_time, form.start_time]);
 

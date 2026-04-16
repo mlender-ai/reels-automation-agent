@@ -13,9 +13,17 @@ const API_BASE = getApiBaseUrl();
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
   if (!response.ok) {
-    const detail = data?.detail || "Request failed";
+    const detail =
+      typeof data === "object" && data !== null && "detail" in data ? String((data as { detail?: unknown }).detail ?? "Request failed") : text || "Request failed";
     throw new ApiError(detail, response.status);
   }
   return data as T;
@@ -39,4 +47,3 @@ export async function requestForm<T>(path: string, formData: FormData): Promise<
   });
   return parseResponse<T>(response);
 }
-

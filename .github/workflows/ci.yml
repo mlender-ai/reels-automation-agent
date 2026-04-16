@@ -28,6 +28,9 @@ jobs:
       - name: Compile backend and scripts
         run: python -m compileall backend/app scripts
 
+      - name: Run backend tests
+        run: python -m unittest discover -s backend/tests -v
+
   frontend-quality:
     runs-on: ubuntu-latest
     steps:
@@ -48,6 +51,10 @@ jobs:
       - name: Type-check frontend
         working-directory: frontend
         run: npm run typecheck
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test
 
       - name: Build frontend
         working-directory: frontend

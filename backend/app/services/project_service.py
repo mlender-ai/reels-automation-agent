@@ -1,3 +1,4 @@
+import os
 import shutil
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
 from app.services.ffmpeg_service import probe_video
 from app.services.serializers import serialize_clip, serialize_export, serialize_project
+from app.services.validation_service import validate_video_upload
 from app.utils.paths import (
     build_upload_target,
     ensure_project_directories,
@@ -87,6 +89,11 @@ def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -
     if not upload_file.filename:
         raise HTTPException(status_code=400, detail="Upload is missing a filename")
 
+    upload_file.file.seek(0, os.SEEK_END)
+    upload_size = upload_file.file.tell()
+    upload_file.file.seek(0)
+    validate_video_upload(upload_file.filename, upload_file.content_type, upload_size)
+
     ensure_project_directories(project.id)
     target = build_upload_target(project.id, upload_file.filename)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -94,14 +101,14 @@ def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -
         shutil.copyfileobj(upload_file.file, buffer)
     upload_file.file.close()
 
-    if target.stat().st_size == 0:
-        target.unlink(missing_ok=True)
-        raise HTTPException(status_code=400, detail="Uploaded video file is empty")
-
     try:
         metadata = probe_video(target)
-    except HTTPException:
-        metadata = {"duration_seconds": None, "width": None, "height": None, "fps": None}
+    except HTTPException as exc:
+        target.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file could not be parsed as a supported video. Try another local video file.",
+        ) from exc
 
     relative_path = to_relative_data_path(target)
     existing_video = project.source_videos[0] if project.source_videos else None

@@ -1,9 +1,10 @@
 import { Film, UploadCloud } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
+import { MAX_UPLOAD_SIZE_MB, validateSelectedVideo } from "../lib/uploadValidation";
 
 export function NewProjectPage() {
   const [title, setTitle] = useState("");
@@ -12,6 +13,8 @@ export function NewProjectPage() {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { pushToast } = useToast();
+  const fileError = useMemo(() => (file ? validateSelectedVideo(file) : null), [file]);
+  const canSubmit = Boolean(title.trim() && file && !fileError && !submitting);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,6 +23,14 @@ export function NewProjectPage() {
         tone: "error",
         title: "Project setup is incomplete",
         description: "Add a project title and choose one local video file before continuing.",
+      });
+      return;
+    }
+    if (fileError) {
+      pushToast({
+        tone: "error",
+        title: "Choose a valid video file",
+        description: fileError,
       });
       return;
     }
@@ -37,7 +48,11 @@ export function NewProjectPage() {
       });
       navigate(`/projects/${project.id}`);
     } catch (error) {
-      pushToast({ tone: "error", title: "Project creation failed", description: (error as Error).message });
+      pushToast({
+        tone: "error",
+        title: stage === "uploading" ? "Video upload failed" : "Project creation failed",
+        description: (error as Error).message,
+      });
     } finally {
       setSubmitting(false);
       setStage("idle");
@@ -69,15 +84,24 @@ export function NewProjectPage() {
               type="file"
               accept="video/mp4,video/quicktime,video/x-m4v,video/*"
               className="hidden"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                const nextFile = event.target.files?.[0] ?? null;
+                setFile(nextFile);
+              }}
             />
             <div className="flex flex-col items-center justify-center text-center">
               <UploadCloud className="h-12 w-12 text-cyan-300" />
               <p className="mt-4 text-lg font-semibold text-white">{file ? file.name : "Choose a source video"}</p>
-              <p className="mt-2 text-sm text-slate-400">MP4 works best. MOV and other common video containers are also fine.</p>
+              <p className="mt-2 text-sm text-slate-400">
+                MP4 works best. MOV, M4V, WebM, and MKV are also allowed. Keep uploads under {MAX_UPLOAD_SIZE_MB} MB.
+              </p>
               {file ? <p className="mt-3 text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(1)} MB selected</p> : null}
             </div>
           </label>
+
+          {fileError ? (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{fileError}</div>
+          ) : null}
 
           {submitting ? (
             <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
@@ -88,7 +112,7 @@ export function NewProjectPage() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={!canSubmit}
           className="mt-8 inline-flex items-center justify-center rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Creating project..." : "Create Project"}

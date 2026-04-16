@@ -15,6 +15,7 @@ from app.services.export_service import export_clip
 from app.services.project_service import get_project_or_404, latest_source_video, latest_transcript
 from app.services.publish_service import create_publish_job
 from app.services.serializers import serialize_clip, serialize_export, serialize_publish_job
+from app.services.validation_service import validate_clip_window
 from app.workers.publish_worker import simulate_publish_job
 
 
@@ -62,13 +63,11 @@ def list_all_clips_endpoint(
 def update_clip_endpoint(clip_id: int, payload: ClipCandidateUpdate, db: Session = Depends(get_db)) -> dict:
     clip = get_clip_or_404(db, clip_id)
     update_data = payload.model_dump(exclude_unset=True)
-    if "start_time" in update_data:
-        clip.start_time = update_data["start_time"]
-    if "end_time" in update_data:
-        clip.end_time = update_data["end_time"]
-    if clip.end_time <= clip.start_time:
-        raise HTTPException(status_code=422, detail="Clip end_time must be greater than start_time")
-    clip.duration = round(clip.end_time - clip.start_time, 3)
+    next_start = update_data.get("start_time", clip.start_time)
+    next_end = update_data.get("end_time", clip.end_time)
+    clip.start_time = next_start
+    clip.end_time = next_end
+    clip.duration = validate_clip_window(clip.start_time, clip.end_time)
     for field in ["suggested_title", "suggested_description", "suggested_hashtags", "subtitle_preset"]:
         if field in update_data:
             setattr(clip, field, update_data[field])

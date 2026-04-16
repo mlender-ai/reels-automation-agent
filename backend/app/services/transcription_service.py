@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -47,68 +46,82 @@ def load_transcript_segments(transcript: Transcript) -> list[dict]:
 
 
 def transcribe_project(db: Session, project: Project, source_video: SourceVideo) -> Transcript:
-    model = _get_whisper_model()
-    source_path = resolve_data_path(source_video.stored_path)
-    if not source_path.exists():
-        raise HTTPException(status_code=404, detail="Source video file is missing on disk")
-    segments_iter, info = model.transcribe(
-        str(source_path),
-        vad_filter=True,
-        beam_size=5,
-        word_timestamps=False,
-    )
-
-    normalized_segments: list[dict] = []
-    transcript_parts: list[str] = []
-    for idx, segment in enumerate(segments_iter):
-        text = " ".join(segment.text.split())
-        if not text:
-            continue
-        normalized_segments.append(
-            {
-                "id": idx,
-                "start": round(float(segment.start), 3),
-                "end": round(float(segment.end), 3),
-                "text": text,
-            }
+    try:
+        model = _get_whisper_model()
+        source_path = resolve_data_path(source_video.stored_path)
+        if not source_path.exists():
+            raise HTTPException(status_code=404, detail="Source video file is missing on disk")
+        segments_iter, info = model.transcribe(
+            str(source_path),
+            vad_filter=True,
+            beam_size=5,
+            word_timestamps=False,
         )
-        transcript_parts.append(text)
 
-    if not normalized_segments:
-        raise HTTPException(status_code=422, detail="No spoken segments were detected in the source video")
+        normalized_segments: list[dict] = []
+        transcript_parts: list[str] = []
+        for idx, segment in enumerate(segments_iter):
+            text = " ".join(segment.text.split())
+            if not text:
+                continue
+            normalized_segments.append(
+                {
+                    "id": idx,
+                    "start": round(float(segment.start), 3),
+                    "end": round(float(segment.end), 3),
+                    "text": text,
+                }
+            )
+            transcript_parts.append(text)
 
-    transcript_payload = {
-        "project_id": project.id,
-        "language": getattr(info, "language", None),
-        "duration_seconds": source_video.duration_seconds,
-        "segment_count": len(normalized_segments),
-        "segments": normalized_segments,
-    }
-    transcripts_dir = project_transcripts_dir(project.id)
-    transcripts_dir.mkdir(parents=True, exist_ok=True)
-    transcript_path = transcripts_dir / "transcript_latest.json"
-    transcript_path.write_text(json.dumps(transcript_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        if not normalized_segments:
+            raise HTTPException(status_code=422, detail="No spoken segments were detected in the source video")
 
-    transcript = db.scalar(select(Transcript).where(Transcript.project_id == project.id).order_by(Transcript.created_at.desc()))
-    transcript_text = " ".join(transcript_parts)
-    relative_path = to_relative_data_path(transcript_path)
-    if transcript:
-        transcript.language = getattr(info, "language", None)
-        transcript.model_name = settings.whisper_model_size
-        transcript.raw_json_path = relative_path
-        transcript.text = transcript_text
-    else:
-        transcript = Transcript(
-            project_id=project.id,
-            language=getattr(info, "language", None),
-            model_name=settings.whisper_model_size,
-            raw_json_path=relative_path,
-            text=transcript_text,
-        )
-        db.add(transcript)
+        transcript_payload = {
+            "project_id": project.id,
+            "language": getattr(info, "language", None),
+            "duration_seconds": source_video.duration_seconds,
+            "segment_count": len(normalized_segments),
+            "segments": normalized_segments,
+        }
+        transcripts_dir = project_transcripts_dir(project.id)
+        transcripts_dir.mkdir(parents=True, exist_ok=True)
+        transcript_path = transcripts_dir / "transcript_latest.json"
+        transcript_path.write_text(json.dumps(transcript_payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    project.status = ProjectStatus.transcribed.value
-    db.add(project)
-    db.commit()
-    db.refresh(transcript)
-    return transcript
+        transcript = db.scalar(select(Transcript).where(Transcript.project_id == project.id).order_by(Transcript.created_at.desc()))
+        transcript_text = " ".join(transcript_parts)
+        relative_path = to_relative_data_path(transcript_path)
+        if transcript:
+            transcript.language = getattr(info, "language", None)
+            transcript.model_name = settings.whisper_model_size
+            transcript.raw_json_path = relative_path
+            transcript.text = transcript_text
+        else:
+            transcript = Transcript(
+                project_id=project.id,
+                language=getattr(info, "language", None),
+                model_name=settings.whisper_model_size,
+                raw_json_path=relative_path,
+                text=transcript_text,
+            )
+            db.add(transcript)
+
+        project.status = ProjectStatus.transcribed.value
+        db.add(project)
+        db.commit()
+        db.refresh(transcript)
+        return transcript
+    except HTTPException:
+        project.status = ProjectStatus.failed.value
+        db.add(project)
+        db.commit()
+        raise
+    except Exception as exc:
+        project.status = ProjectStatus.failed.value
+        db.add(project)
+        db.commit()
+        raise HTTPException(
+            status_code=500,
+            detail="Transcription failed. Check the source video's audio track and your faster-whisper setup, then try again.",
+        ) from exc
