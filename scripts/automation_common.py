@@ -317,11 +317,11 @@ def build_repo_context() -> str:
             "## Git Status",
             git_output("status", "--short"),
             "## File Tree",
-            build_tree(),
+            build_tree(max_depth=3, max_entries=120),
             "## Root README Excerpt",
-            read_text(ROOT / "README.md", limit=8000),
+            read_text(ROOT / "README.md", limit=3200),
             "## AI System README Excerpt",
-            read_text(ROOT / "docs" / "ai-system" / "README.md", limit=6000),
+            read_text(ROOT / "docs" / "ai-system" / "README.md", limit=2200),
         ]
     )
 
