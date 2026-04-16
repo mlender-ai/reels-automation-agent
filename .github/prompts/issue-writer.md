@@ -9,6 +9,9 @@ Rules:
 - prefer concrete, actionable issues
 - skip vague strategy items unless they can be turned into a clear issue
 - respect duplicate avoidance and severity policy
+- set `create_issue` to `true` when the item is actionable, non-duplicate, and severity is at least `medium`
+- set `create_issue` to `false` only for report-only items such as vague strategy notes, duplicates, or low-priority polish
+- if there is at least one clear `medium`, `high`, or `critical` issue, at least one candidate should have `create_issue: true`
 
 Return this JSON shape:
 

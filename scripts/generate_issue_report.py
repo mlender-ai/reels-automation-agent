@@ -41,6 +41,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def should_create_issue(priority: str, body: str, explicit_value: Any) -> bool:
+    normalized_priority = priority.strip().lower()
+    if explicit_value is True:
+        return True
+    if normalized_priority in {"critical", "high"}:
+        return True
+    if normalized_priority == "medium" and len(body.strip()) >= 80:
+        return True
+    return False
+
+
 def normalize_issues(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, dict) and isinstance(payload.get("issues"), list):
         raw_issues = payload["issues"]
@@ -72,7 +83,11 @@ def normalize_issues(payload: Any) -> list[dict[str, Any]]:
                 "labels": [str(label).strip() for label in labels if str(label).strip()],
                 "priority": str(item.get("priority", "medium")).strip().lower() or "medium",
                 "source_roles": [str(role).strip() for role in source_roles if str(role).strip()],
-                "create_issue": bool(item.get("create_issue", False)),
+                "create_issue": should_create_issue(
+                    str(item.get("priority", "medium")).strip().lower() or "medium",
+                    body,
+                    item.get("create_issue"),
+                ),
                 "creation_status": "report-only",
                 "order": index,
             }
