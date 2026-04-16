@@ -37,19 +37,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install automation dependencies
+        run: python -m pip install requests
+
       - name: Run agent loop
         id: agent_loop
         run: python scripts/run_agent_loop.py
 
       - name: Generate issue report
         id: issue_report
-        run: python scripts/generate_issue_report.py --agent-run "${{ steps.agent_loop.outputs.output_dir }}"
+        run: python scripts/generate_issue_report.py --agent-run "${{ steps.agent_loop.outputs.agent_run }}"
 
       - name: Upload issue artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.issue_report.outputs.artifact_name }}
-          path: |
-            ${{ steps.agent_loop.outputs.output_dir }}
-            ${{ steps.issue_report.outputs.output_dir }}
+          path: reports/
           if-no-files-found: error

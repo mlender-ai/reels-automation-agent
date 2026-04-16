@@ -7,10 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from automation_common import (
-    AUTOMATION_OUTPUT_DIR,
+    REPORTS_DIR,
     ROOT,
     AutomationError,
-    call_chat_completion,
     ensure_dir,
     ensure_github_labels,
     extract_json_payload,
@@ -28,6 +27,7 @@ from automation_common import (
     write_step_summary,
     write_text,
 )
+from common_llm import call_chat_completion
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,11 +35,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--bundle",
         default="",
-        help="Optional explicit path to a bundle.json file. Defaults to the latest bundle under automation-output/patch-bundles.",
+        help="Optional explicit path to a bundle.json file. Defaults to the latest bundle under reports/patches.",
     )
     parser.add_argument(
         "--output-root",
-        default=str(AUTOMATION_OUTPUT_DIR / "pr-reports"),
+        default=str(REPORTS_DIR / "prs"),
         help="Directory that stores timestamped PR reports.",
     )
     return parser.parse_args()
@@ -49,7 +49,7 @@ def latest_bundle(bundle_arg: str) -> Path:
     if bundle_arg:
         path = Path(bundle_arg)
         return path if path.is_absolute() else (ROOT / path).resolve()
-    latest_dir = latest_subdir(AUTOMATION_OUTPUT_DIR / "patch-bundles")
+    latest_dir = latest_subdir(REPORTS_DIR / "patches")
     return latest_dir / "bundle.json"
 
 

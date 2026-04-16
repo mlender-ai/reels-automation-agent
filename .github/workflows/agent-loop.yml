@@ -35,6 +35,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install automation dependencies
+        run: python -m pip install requests
+
       - name: Validate AI configuration
         shell: bash
         run: |
@@ -48,5 +51,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.agent_loop.outputs.artifact_name }}
-          path: ${{ steps.agent_loop.outputs.output_dir }}
+          path: reports/
           if-no-files-found: error

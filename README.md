@@ -15,6 +15,13 @@ The automation system continuously reviews the repository, drafts issues, propos
 
 This repository does not download videos from external platforms. Version one is strictly local-upload based.
 
+## Current Goal
+
+This repository is the basecamp for two tracks that evolve together:
+
+1. a local-first shortform automation app for upload, transcript, clip generation, approval, export, and mock publish
+2. an AI operating system that reviews the repo, writes reports, drafts issues, proposes small patch bundles, and opens draft PRs only when explicitly allowed
+
 ## Product Features
 
 - project creation
@@ -99,6 +106,7 @@ reels-automation-agent/
 │   └── self_improve_repo.md
 ├── scripts/
 │   ├── automation_common.py
+│   ├── common_llm.py
 │   ├── run_agent_loop.py
 │   ├── generate_issue_report.py
 │   ├── generate_patch_bundle.py
@@ -235,7 +243,7 @@ The AI roles are:
 - `python scripts/generate_patch_bundle.py`
 - `python scripts/create_auto_pr.py`
 
-These scripts use an OpenAI-compatible Chat Completions API and store their outputs under `automation-output/`.
+These scripts use an OpenAI-compatible Chat Completions API through `scripts/common_llm.py` and store their outputs under `reports/`.
 By default, the workflows can fall back to GitHub Models with `GITHUB_TOKEN` if the AI configuration secrets are unset.
 
 ## GitHub Actions
@@ -244,6 +252,7 @@ By default, the workflows can fall back to GitHub Models with `GITHUB_TOKEN` if 
 
 - runs hourly or manually
 - generates QA / PO / PM / CTO markdown reports
+- stores role reports under `reports/{role}/`
 - saves artifacts and step summaries
 
 ### `issue-loop.yml`
@@ -286,6 +295,8 @@ Recommended baseline values for this repository:
 - `AUTO_PR_ENABLED=false`
 - `AUTO_ISSUE_ENABLED=false`
 
+Secrets must be configured before the 24-hour agent loop can actually call an LLM. Without them, the workflows still run, but AI generation steps can fail.
+
 ## Auto PR Policy
 
 - auto merge is disabled by default
@@ -324,3 +335,11 @@ Detailed rules live in `docs/ai-system/PR_POLICY.md`.
 - richer issue deduplication
 - more selective patch candidate ranking
 - tighter CI validation before auto PR creation
+
+## Next Steps
+
+- trigger `Agent Loop` first and verify that fresh artifacts appear under `reports/`
+- use `prompts/build_mvp.md` for the next product build pass
+- use `prompts/improve_system.md` to harden the generated MVP
+- use `prompts/scale_system.md` when official platform adapters are ready
+- use `prompts/self_improve_repo.md` to refine the repo's own AI operating loop

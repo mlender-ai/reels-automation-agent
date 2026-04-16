@@ -5,11 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from automation_common import (
-    AUTOMATION_OUTPUT_DIR,
+    REPORTS_DIR,
     ROOT,
     allowed_auto_pr_path,
     build_tree,
-    call_chat_completion,
     contains_forbidden_patch_terms,
     ensure_dir,
     extract_json_payload,
@@ -26,6 +25,7 @@ from automation_common import (
     write_step_summary,
     write_text,
 )
+from common_llm import call_chat_completion
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,11 +33,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--agent-run",
         default="",
-        help="Optional explicit path to an agent run directory. Defaults to the latest run under automation-output/agent-runs.",
+        help="Optional explicit path to an agent run directory. Defaults to the latest run under reports/agent-runs.",
     )
     parser.add_argument(
         "--output-root",
-        default=str(AUTOMATION_OUTPUT_DIR / "patch-bundles"),
+        default=str(REPORTS_DIR / "patches"),
         help="Directory that stores timestamped patch bundle outputs.",
     )
     parser.add_argument("--max-files", type=int, default=5)
@@ -72,7 +72,7 @@ def latest_agent_run(agent_run_arg: str) -> Path:
     if agent_run_arg:
         path = Path(agent_run_arg)
         return path if path.is_absolute() else (ROOT / path).resolve()
-    return latest_subdir(AUTOMATION_OUTPUT_DIR / "agent-runs")
+    return latest_subdir(REPORTS_DIR / "agent-runs")
 
 
 def build_candidate_file_context(report_text: str, max_files: int) -> list[dict[str, str]]:
@@ -249,4 +249,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

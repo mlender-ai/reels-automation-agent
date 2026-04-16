@@ -15,6 +15,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTOMATION_OUTPUT_DIR = ROOT / "automation-output"
+REPORTS_DIR = ROOT / "reports"
 DEFAULT_GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
 DEFAULT_GITHUB_MODELS_MODEL = "openai/gpt-4.1"
 
@@ -28,6 +29,7 @@ IGNORED_PARTS = {
     "node_modules",
     "dist",
     "automation-output",
+    "reports",
 }
 
 ALLOWED_AUTO_PR_PREFIXES = (
