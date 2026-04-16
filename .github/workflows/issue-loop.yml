@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   issues: write
+  models: read
 
 concurrency:
   group: issue-loop-${{ github.ref }}
@@ -52,4 +53,3 @@ jobs:
             ${{ steps.agent_loop.outputs.output_dir }}
             ${{ steps.issue_report.outputs.output_dir }}
           if-no-files-found: error
-

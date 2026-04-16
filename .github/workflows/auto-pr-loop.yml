@@ -9,6 +9,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  models: read
 
 concurrency:
   group: auto-pr-loop-${{ github.ref }}
@@ -59,4 +60,3 @@ jobs:
             ${{ steps.patch_bundle.outputs.output_dir }}
             ${{ steps.auto_pr.outputs.output_dir }}
           if-no-files-found: error
-

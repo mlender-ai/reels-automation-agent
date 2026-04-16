@@ -14,6 +14,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTOMATION_OUTPUT_DIR = ROOT / "automation-output"
+DEFAULT_GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
+DEFAULT_GITHUB_MODELS_MODEL = "openai/gpt-4.1"
 
 IGNORED_PARTS = {
     ".git",
@@ -153,11 +155,14 @@ def call_chat_completion(
     temperature: float | None = None,
     max_tokens: int = 2200,
 ) -> str:
-    api_url = os.environ.get("AI_API_URL", "").strip()
-    api_key = os.environ.get("AI_API_KEY", "").strip()
-    model = os.environ.get("AI_MODEL", "").strip()
-    if not api_url or not api_key or not model:
-        raise AutomationError("AI_API_URL, AI_API_KEY, and AI_MODEL must be set")
+    api_url = os.environ.get("AI_API_URL", "").strip() or DEFAULT_GITHUB_MODELS_URL
+    configured_api_key = os.environ.get("AI_API_KEY", "").strip()
+    api_key = configured_api_key
+    if not api_key or api_key.upper() == "USE_GITHUB_TOKEN":
+        api_key = os.environ.get("GITHUB_TOKEN", "").strip()
+    model = os.environ.get("AI_MODEL", "").strip() or DEFAULT_GITHUB_MODELS_MODEL
+    if not api_key:
+        raise AutomationError("AI_API_KEY was not set and GITHUB_TOKEN fallback was unavailable")
 
     if temperature is None:
         raw_temperature = os.environ.get("AI_TEMPERATURE", "0.2").strip() or "0.2"
@@ -173,13 +178,19 @@ def call_chat_completion(
         ],
     }
 
+    resolved_url = resolve_api_url(api_url)
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    if "models.github.ai" in resolved_url:
+        headers["Accept"] = "application/vnd.github+json"
+        headers["X-GitHub-Api-Version"] = "2022-11-28"
+
     request = urllib.request.Request(
-        resolve_api_url(api_url),
+        resolved_url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
         method="POST",
     )
 

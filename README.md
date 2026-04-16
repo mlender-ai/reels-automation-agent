@@ -236,6 +236,7 @@ The AI roles are:
 - `python scripts/create_auto_pr.py`
 
 These scripts use an OpenAI-compatible Chat Completions API and store their outputs under `automation-output/`.
+By default, the workflows can fall back to GitHub Models with `GITHUB_TOKEN` if the AI configuration secrets are unset.
 
 ## GitHub Actions
 
@@ -275,6 +276,15 @@ These scripts use an OpenAI-compatible Chat Completions API and store their outp
 - `GITHUB_TOKEN`
 
 `GITHUB_TOKEN` can use the built-in GitHub Actions token as long as workflow permissions allow the operation.
+
+Recommended baseline values for this repository:
+
+- `AI_API_URL=https://models.github.ai/inference/chat/completions`
+- `AI_API_KEY=USE_GITHUB_TOKEN`
+- `AI_MODEL=openai/gpt-4.1`
+- `AI_TEMPERATURE=0.2`
+- `AUTO_PR_ENABLED=false`
+- `AUTO_ISSUE_ENABLED=false`
 
 ## Auto PR Policy
 
