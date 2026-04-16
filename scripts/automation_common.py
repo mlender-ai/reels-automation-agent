@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -194,14 +195,41 @@ def call_chat_completion(
         method="POST",
     )
 
-    try:
-        with urllib.request.urlopen(request, timeout=300) as response:
-            raw = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        details = exc.read().decode("utf-8", errors="ignore")
-        raise AutomationError(f"AI request failed with HTTP {exc.code}: {details}") from exc
-    except urllib.error.URLError as exc:
-        raise AutomationError(f"AI request failed: {exc}") from exc
+    max_attempts = 5
+    last_error: Exception | None = None
+    raw = ""
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=300) as response:
+                raw = response.read().decode("utf-8")
+            break
+        except urllib.error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="ignore")
+            retry_after_header = exc.headers.get("Retry-After") if exc.headers else None
+            retry_after = 0
+            if retry_after_header:
+                try:
+                    retry_after = int(retry_after_header)
+                except ValueError:
+                    retry_after = 0
+
+            is_retryable = exc.code == 429 or exc.code >= 500
+            last_error = AutomationError(f"AI request failed with HTTP {exc.code}: {details}")
+            if not is_retryable or attempt == max_attempts:
+                raise last_error from exc
+
+            sleep_seconds = retry_after or min(60, 5 * (2 ** (attempt - 1)))
+            time.sleep(sleep_seconds)
+        except urllib.error.URLError as exc:
+            last_error = AutomationError(f"AI request failed: {exc}")
+            if attempt == max_attempts:
+                raise last_error from exc
+            time.sleep(min(30, 3 * attempt))
+    else:
+        if last_error:
+            raise last_error
+        raise AutomationError("AI request failed without a concrete exception")
 
     parsed = json.loads(raw)
     try:
