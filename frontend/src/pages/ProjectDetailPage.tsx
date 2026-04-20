@@ -52,7 +52,7 @@ export function ProjectDetailPage() {
     } catch (error) {
       const message = (error as Error).message;
       setPageError(message);
-      pushToast({ tone: "error", title: "Project failed to load", description: message });
+      pushToast({ tone: "error", title: "프로젝트를 불러오지 못했습니다", description: message });
     } finally {
       if (!options.silent) setLoading(false);
     }
@@ -74,7 +74,7 @@ export function ProjectDetailPage() {
     } catch (error) {
       const message = (error as Error).message;
       setPageError(message);
-      pushToast({ tone: "error", title: "Project failed to load", description: message });
+      pushToast({ tone: "error", title: "프로젝트를 불러오지 못했습니다", description: message });
     } finally {
       setLoading(false);
     }
@@ -106,18 +106,18 @@ export function ProjectDetailPage() {
       if (job.status === "completed") {
         const description =
           job.job_type === "generate_clips"
-            ? "Fresh clip candidates are ready for review."
-            : "Transcript extraction completed and the project is ready for the next step.";
-        setActionNotice({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} completed`, description });
-        pushToast({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} completed`, description });
+            ? "새 클립 후보가 준비되었습니다. 이제 검토 화면으로 이동해 확인할 수 있습니다."
+            : "자막 추출이 끝났습니다. 이제 다음 단계로 넘어갈 수 있습니다.";
+        setActionNotice({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} 완료`, description });
+        pushToast({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} 완료`, description });
         if (job.job_type === "generate_clips" && navigateOnClipReady) {
           setNavigateOnClipReady(false);
           navigate(`/projects/${projectId}/clips`);
         }
       } else if (job.status === "failed") {
-        const description = job.error_detail ?? "Check the local runtime tools and source media, then retry this automation step.";
-        setActionNotice({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} failed`, description });
-        pushToast({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} failed`, description });
+        const description = job.error_detail ?? "로컬 런타임 도구와 원본 영상을 확인한 뒤 이 단계를 다시 실행해 주세요.";
+        setActionNotice({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} 실패`, description });
+        pushToast({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} 실패`, description });
         if (job.job_type === "generate_clips") {
           setNavigateOnClipReady(false);
         }
@@ -134,18 +134,18 @@ export function ProjectDetailPage() {
       setJobs((current) => upsertJob(current, job));
       setActionNotice({
         tone: "info",
-        title: "Transcript queued",
-        description: "Transcription is now running in the background. This page will refresh progress automatically.",
+        title: "자막 추출을 대기열에 등록했습니다",
+        description: "자막 추출이 백그라운드에서 실행됩니다. 이 화면은 진행률을 자동으로 새로고침합니다.",
       });
-      pushToast({ tone: "success", title: "Transcript queued", description: "Background transcription has started." });
+      pushToast({ tone: "success", title: "자막 추출을 시작했습니다", description: "백그라운드 자막 추출이 시작되었습니다." });
     } catch (error) {
       const message = (error as Error).message;
       setActionNotice({
         tone: "error",
-        title: "Transcription failed to start",
-        description: `${message} Retry after checking the source video's audio track or your local faster-whisper setup.`,
+        title: "자막 추출을 시작하지 못했습니다",
+        description: `${message} 원본 영상의 오디오 트랙이나 로컬 faster-whisper 설정을 확인한 뒤 다시 시도해 주세요.`,
       });
-      pushToast({ tone: "error", title: "Transcription failed to start", description: message });
+      pushToast({ tone: "error", title: "자막 추출을 시작하지 못했습니다", description: message });
     } finally {
       setSubmittingAction(null);
     }
@@ -161,29 +161,29 @@ export function ProjectDetailPage() {
       setNavigateOnClipReady(true);
       setActionNotice({
         tone: "info",
-        title: "Clip generation queued",
-        description: "Ranking runs in the background now. You will land on the candidate grid as soon as new clips are ready.",
+        title: "클립 후보 생성을 대기열에 등록했습니다",
+        description: "후보 점수화가 백그라운드에서 실행됩니다. 새 후보가 준비되면 자동으로 후보 목록으로 이동합니다.",
       });
-      pushToast({ tone: "success", title: "Clip generation queued", description: "Shortform ranking has started." });
+      pushToast({ tone: "success", title: "클립 후보 생성을 시작했습니다", description: "숏폼 후보 랭킹 작업이 시작되었습니다." });
     } catch (error) {
       const message = (error as Error).message;
       setActionNotice({
         tone: "error",
-        title: "Clip generation failed to start",
-        description: `${message} Review the transcript content, then retry or regenerate the transcript from a clearer source video.`,
+        title: "클립 후보 생성을 시작하지 못했습니다",
+        description: `${message} 자막 내용을 확인한 뒤 다시 시도하거나, 더 선명한 원본 영상으로 자막을 다시 생성해 주세요.`,
       });
-      pushToast({ tone: "error", title: "Clip generation failed to start", description: message });
+      pushToast({ tone: "error", title: "클립 후보 생성을 시작하지 못했습니다", description: message });
     } finally {
       setSubmittingAction(null);
     }
   }
 
-  if (loading) return <LoadingState label="Loading project..." />;
+  if (loading) return <LoadingState label="프로젝트를 불러오는 중..." />;
   if (!project) {
     if (pageError) {
-      return <ErrorState title="Project unavailable" description={pageError} actionLabel="Retry project" onAction={() => void loadPage()} />;
+      return <ErrorState title="프로젝트를 불러올 수 없습니다" description={pageError} actionLabel="다시 시도" onAction={() => void loadPage()} />;
     }
-    return <EmptyState title="Project not found" description="This project could not be loaded from the local API." />;
+    return <EmptyState title="프로젝트를 찾을 수 없습니다" description="로컬 API에서 이 프로젝트를 불러오지 못했습니다." />;
   }
 
   const hasSource = Boolean(project.source_video);
@@ -191,7 +191,7 @@ export function ProjectDetailPage() {
   const hasClips = project.clip_count > 0;
   const workflowLock = Boolean(activeProjectJob || submittingAction);
   const nextActionText = activeProjectJob
-    ? `${workflowJobTypeLabel(activeProjectJob.job_type)} is in progress`
+    ? `${workflowJobTypeLabel(activeProjectJob.job_type)} 진행 중`
     : nextActionLabel(project.next_action);
 
   return (
@@ -200,39 +200,39 @@ export function ProjectDetailPage() {
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Project</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">프로젝트</p>
               <h3 className="mt-3 font-display text-3xl font-semibold text-white">{project.title}</h3>
-              <p className="mt-3 text-sm text-slate-400">Created {formatDateTime(project.created_at)}</p>
+              <p className="mt-3 text-sm text-slate-400">생성일 {formatDateTime(project.created_at)}</p>
             </div>
             <StatusBadge status={activeProjectJob?.status ?? project.status} />
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-4">
             <div className="rounded-3xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Transcript</p>
-              <p className="mt-2 text-lg font-semibold text-white">{hasTranscript ? "Ready" : "Missing"}</p>
+              <p className="text-xs text-slate-500">자막</p>
+              <p className="mt-2 text-lg font-semibold text-white">{hasTranscript ? "준비됨" : "없음"}</p>
             </div>
             <div className="rounded-3xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Clip Candidates</p>
+              <p className="text-xs text-slate-500">클립 후보</p>
               <p className="mt-2 text-lg font-semibold text-white">{project.clip_count}</p>
               <p className="mt-2 text-xs text-slate-500">
-                {project.pending_clip_count} pending · {project.approved_clip_count} approved
+                검토 대기 {project.pending_clip_count}개 · 승인 {project.approved_clip_count}개
               </p>
             </div>
             <div className="rounded-3xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Exports</p>
+              <p className="text-xs text-slate-500">내보내기</p>
               <p className="mt-2 text-lg font-semibold text-white">{project.export_count}</p>
-              <p className="mt-2 text-xs text-slate-500">{project.rejected_clip_count} rejected tracked</p>
+              <p className="mt-2 text-xs text-slate-500">반려 {project.rejected_clip_count}개 추적 중</p>
             </div>
             <div className="rounded-3xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Automation</p>
-              <p className="mt-2 text-lg font-semibold text-white">{activeProjectJob ? `${activeProjectJob.progress}%` : "Idle"}</p>
-              <p className="mt-2 text-xs text-slate-500">{activeProjectJob?.message ?? "No background run in progress"}</p>
+              <p className="text-xs text-slate-500">자동화 작업</p>
+              <p className="mt-2 text-lg font-semibold text-white">{activeProjectJob ? `${activeProjectJob.progress}%` : "대기"}</p>
+              <p className="mt-2 text-xs text-slate-500">{activeProjectJob?.message ?? "현재 백그라운드 작업이 없습니다."}</p>
             </div>
           </div>
 
           <div className="mt-6 rounded-3xl border border-cyan-300/15 bg-cyan-300/8 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">Next action</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">다음 액션</p>
             <p className="mt-2 text-sm font-medium text-cyan-100">{nextActionText}</p>
           </div>
 
@@ -246,10 +246,10 @@ export function ProjectDetailPage() {
                     : "border-rose-400/20 bg-rose-400/10 text-rose-100"
               }`}
             >
-              <p className="text-sm font-semibold">{actionNotice?.title ?? "Last automation step needs attention"}</p>
+              <p className="text-sm font-semibold">{actionNotice?.title ?? "최근 자동화 단계에 확인이 필요합니다"}</p>
               <p className="mt-2 text-sm leading-6 text-white/85">
                 {actionNotice?.description ??
-                  "The last project step failed. Check your local source file and runtime tools, then retry the next action from this screen."}
+                  "최근 프로젝트 단계가 실패했습니다. 로컬 원본 파일과 런타임 도구를 확인한 뒤 이 화면에서 다시 시도해 주세요."}
               </p>
             </div>
           ) : null}
@@ -263,10 +263,10 @@ export function ProjectDetailPage() {
             >
               <Subtitles className="h-4 w-4" />
               {activeProjectJob?.job_type === "transcribe"
-                ? `${activeProjectJob.progress}% · Transcribing`
+                ? `${activeProjectJob.progress}% · 자막 추출 중`
                 : hasTranscript
-                  ? "Regenerate Transcript"
-                  : "Extract Transcript"}
+                  ? "자막 다시 생성"
+                  : "자막 추출"}
             </button>
             <button
               type="button"
@@ -276,10 +276,10 @@ export function ProjectDetailPage() {
             >
               <Wand2 className="h-4 w-4" />
               {activeProjectJob?.job_type === "generate_clips"
-                ? `${activeProjectJob.progress}% · Generating`
+                ? `${activeProjectJob.progress}% · 후보 생성 중`
                 : hasClips
-                  ? "Regenerate Clip Candidates"
-                  : "Generate Clip Candidates"}
+                  ? "클립 후보 다시 생성"
+                  : "클립 후보 생성"}
             </button>
             {hasClips ? (
               <Link
@@ -287,7 +287,7 @@ export function ProjectDetailPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
               >
                 <Sparkles className="h-4 w-4" />
-                View Candidates
+                후보 보기
               </Link>
             ) : (
               <button
@@ -296,7 +296,7 @@ export function ProjectDetailPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white/45"
               >
                 <Sparkles className="h-4 w-4" />
-                View Candidates
+                후보 보기
               </button>
             )}
           </div>
@@ -310,11 +310,11 @@ export function ProjectDetailPage() {
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
                 <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">Duration</p>
+                  <p className="text-xs text-slate-500">길이</p>
                   <p className="mt-2 font-semibold text-white">{formatDuration(project.source_video.duration_seconds)}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">Resolution</p>
+                  <p className="text-xs text-slate-500">해상도</p>
                   <p className="mt-2 font-semibold text-white">
                     {project.source_video.width ?? "--"} x {project.source_video.height ?? "--"}
                   </p>
@@ -331,14 +331,14 @@ export function ProjectDetailPage() {
                   rel="noreferrer"
                   className="mt-4 inline-flex rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15"
                 >
-                  Open latest export
+                  최신 결과물 열기
                 </a>
               ) : null}
             </div>
           ) : (
             <EmptyState
-              title="Source missing"
-              description="This project does not have an uploaded video yet. Go back to New Project to add the local source file."
+              title="원본 영상이 없습니다"
+              description="아직 이 프로젝트에 업로드된 영상이 없습니다. 새 프로젝트 화면으로 돌아가 로컬 원본 영상을 추가해 주세요."
             />
           )}
         </div>
@@ -346,37 +346,37 @@ export function ProjectDetailPage() {
 
       <section className="grid gap-8 xl:grid-cols-[1fr,1fr]">
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
-          <h3 className="font-display text-xl font-semibold text-white">Transcript Status</h3>
+          <h3 className="font-display text-xl font-semibold text-white">자막 상태</h3>
           {project.latest_transcript ? (
             <div className="mt-4 space-y-3">
               <StatusBadge status="transcribed" />
               <p className="text-sm leading-6 text-slate-300">{truncate(project.latest_transcript.text, 320)}</p>
               <p className="text-xs text-slate-500">
-                Model {project.latest_transcript.model_name} · Language {project.latest_transcript.language ?? "auto"}
+                모델 {project.latest_transcript.model_name} · 언어 {project.latest_transcript.language ?? "자동 감지"}
               </p>
             </div>
           ) : (
             <p className="mt-4 text-sm leading-6 text-slate-400">
-              Transcript has not been generated yet. Run the transcript step to unlock heuristic clip discovery.
+              아직 자막이 생성되지 않았습니다. 자막 추출을 실행하면 규칙 기반 클립 후보 탐색을 시작할 수 있습니다.
             </p>
           )}
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
-          <h3 className="font-display text-xl font-semibold text-white">Next Step Guide</h3>
+          <h3 className="font-display text-xl font-semibold text-white">다음 단계 안내</h3>
           <div className="mt-4 space-y-4 text-sm leading-6 text-slate-300">
-            <p>1. Extract or refresh the transcript whenever the source video changes.</p>
-            <p>2. Generate candidates to refresh the review queue with stronger ranked shortform windows.</p>
-            <p>3. Approve promising candidates, export a 1080x1920 MP4, and then queue a mock publish job.</p>
+            <p>1. 원본 영상이 바뀌면 자막을 새로 추출하거나 다시 생성하세요.</p>
+            <p>2. 클립 후보를 생성해 더 강한 숏폼 구간으로 검토 대기열을 업데이트하세요.</p>
+            <p>3. 유망한 후보를 승인하고 1080x1920 MP4로 내보낸 뒤 게시 큐에 넣으세요.</p>
           </div>
         </div>
       </section>
 
       <WorkflowJobList
         jobs={relevantJobs}
-        title="Automation Activity"
-        description="These project-level runs update transcript extraction and clip candidate generation without blocking the page."
-        emptyTitle="Transcript extraction and clip generation runs will appear here."
+        title="자동화 작업 내역"
+        description="프로젝트 단위 작업은 페이지를 막지 않고 자막 추출과 클립 후보 생성을 백그라운드에서 처리합니다."
+        emptyTitle="자막 추출과 클립 후보 생성 작업이 여기에 표시됩니다."
       />
     </div>
   );

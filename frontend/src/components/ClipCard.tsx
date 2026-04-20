@@ -23,12 +23,12 @@ export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCar
         <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-cyan-100">{formatDuration(clip.duration)}</span>
-            <span className="rounded-full bg-cyan-300/15 px-3 py-1 text-xs font-semibold text-cyan-100">Score {formatScore(clip.score)}</span>
+            <span className="rounded-full bg-cyan-300/15 px-3 py-1 text-xs font-semibold text-cyan-100">점수 {formatScore(clip.score)}</span>
           </div>
           <StatusBadge status={clip.status} />
         </div>
         <div className="absolute inset-x-4 bottom-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">Hook</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">훅</p>
           <p className="mt-2 text-sm leading-6 text-white">{truncate(clip.hook_text, compact ? 90 : 110)}</p>
         </div>
       </Link>
@@ -57,26 +57,26 @@ export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCar
             className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"
           >
             <PencilLine className="h-4 w-4" />
-            Edit
+            편집
           </Link>
           {onApprove ? (
             <button
               type="button"
               onClick={() => onApprove(clip.id)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-2.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
-            >
-              <Check className="h-4 w-4" />
-              Approve
+            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-2.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
+          >
+            <Check className="h-4 w-4" />
+              승인
             </button>
           ) : null}
           {onReject ? (
             <button
               type="button"
               onClick={() => onReject(clip.id)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
-            >
-              <X className="h-4 w-4" />
-              Reject
+            className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
+          >
+            <X className="h-4 w-4" />
+              반려
             </button>
           ) : null}
         </div>

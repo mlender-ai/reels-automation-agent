@@ -127,7 +127,7 @@ describe("ClipReviewPage", () => {
     vi.mocked(api.rejectClip).mockReset();
   });
 
-  it("shows an inline queued notice when export starts in the background", async () => {
+  it("내보내기 작업을 시작하면 인라인 대기열 안내를 보여준다", async () => {
     const user = userEvent.setup();
     vi.mocked(api.getClip).mockResolvedValue(makeClip());
     vi.mocked(api.getProject).mockResolvedValue(makeProject());
@@ -144,14 +144,14 @@ describe("ClipReviewPage", () => {
     renderClipReview();
 
     expect(await screen.findByText("Review test project")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Export 1080x1920/i }));
+    await user.click(screen.getByRole("button", { name: /1080x1920으로 내보내기/i }));
 
-    expect((await screen.findAllByText("Export queued")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/background export has started/i).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("내보내기를 대기열에 등록했습니다")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/백그라운드 내보내기 작업이 시작되었습니다/i).length).toBeGreaterThan(0);
     expect(api.startClipExportJob).toHaveBeenCalledWith(11);
   });
 
-  it("queues publish through the background job endpoint when an export exists", async () => {
+  it("결과물이 있으면 게시 큐를 백그라운드 작업으로 등록한다", async () => {
     const user = userEvent.setup();
     vi.mocked(api.getClip).mockResolvedValue(
       makeClip({
@@ -186,11 +186,11 @@ describe("ClipReviewPage", () => {
     renderClipReview();
 
     expect(await screen.findByText("Review test project")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Queue youtube/i }));
+    await user.click(screen.getByRole("button", { name: /youtube 큐에 넣기/i }));
 
     await waitFor(() => {
       expect(api.startClipPublishJob).toHaveBeenCalledWith(11, "youtube");
     });
-    expect((await screen.findAllByText("Publish queued")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("게시 큐에 등록했습니다")).length).toBeGreaterThan(0);
   });
 });

@@ -34,46 +34,46 @@ describe("NewProjectPage", () => {
     vi.clearAllMocks();
   });
 
-  it("shows inline validation when a non-video file is selected", async () => {
+  it("비디오가 아닌 파일을 선택하면 인라인 검증 메시지를 보여준다", async () => {
     const user = userEvent.setup({ applyAccept: false });
     const { container } = renderWithProviders(<NewProjectPage />);
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     await user.upload(input, new File(["hello"], "episode.mp4", { type: "text/plain" }));
 
-    expect(screen.getByText(/selected file type is not supported/i)).toBeInTheDocument();
+    expect(screen.getByText(/선택한 파일 형식은 지원하지 않습니다/i)).toBeInTheDocument();
   });
 
-  it("shows an inline upload failure notice when the backend rejects the file", async () => {
+  it("백엔드가 업로드를 거부하면 인라인 오류 안내를 보여준다", async () => {
     const user = userEvent.setup();
     vi.mocked(api.createProject).mockResolvedValue({ id: 17 } as never);
     vi.mocked(api.uploadProjectVideo).mockRejectedValue(new Error("Upload failed from API"));
 
     const { container } = renderWithProviders(<NewProjectPage />);
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const titleInput = screen.getAllByPlaceholderText(/Podcast episode/i)[0];
+    const titleInput = screen.getAllByPlaceholderText(/격투기 해설 영상 하이라이트/i)[0];
 
     await user.type(titleInput, "Failure case");
     await user.upload(input, new File(["video"], "episode.mp4", { type: "video/mp4" }));
-    await user.click(screen.getByRole("button", { name: /Create Project/i }));
+    await user.click(screen.getByRole("button", { name: /프로젝트 만들기/i }));
 
-    expect((await screen.findAllByText("Video upload failed")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("영상 업로드에 실패했습니다")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Upload failed from API").length).toBeGreaterThan(0);
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("navigates to the project detail page after a successful upload", async () => {
+  it("업로드가 성공하면 프로젝트 상세 화면으로 이동한다", async () => {
     const user = userEvent.setup();
     vi.mocked(api.createProject).mockResolvedValue({ id: 24 } as never);
     vi.mocked(api.uploadProjectVideo).mockResolvedValue({ id: 24 } as never);
 
     const { container } = renderWithProviders(<NewProjectPage />);
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const titleInput = screen.getAllByPlaceholderText(/Podcast episode/i)[0];
+    const titleInput = screen.getAllByPlaceholderText(/격투기 해설 영상 하이라이트/i)[0];
 
     await user.type(titleInput, "Success case");
     await user.upload(input, new File(["video"], "episode.mp4", { type: "video/mp4" }));
-    await user.click(screen.getByRole("button", { name: /Create Project/i }));
+    await user.click(screen.getByRole("button", { name: /프로젝트 만들기/i }));
 
     await waitFor(() => {
       expect(api.createProject).toHaveBeenCalled();

@@ -32,7 +32,7 @@ export function PublishQueuePage() {
     } catch (error) {
       const message = (error as Error).message;
       setPageError(message);
-      pushToast({ tone: "error", title: "Publish queue failed to load", description: message });
+      pushToast({ tone: "error", title: "게시 큐를 불러오지 못했습니다", description: message });
     } finally {
       setLoading(false);
     }
@@ -50,27 +50,27 @@ export function PublishQueuePage() {
 
   async function handleQueue() {
     if (!selectedClipId) {
-      pushToast({ tone: "error", title: "No clip selected", description: "Choose an exported clip before queueing publish." });
+      pushToast({ tone: "error", title: "클립이 선택되지 않았습니다", description: "게시 큐에 넣기 전에 내보낸 클립을 선택해 주세요." });
       return;
     }
     try {
       setSubmitting(true);
       await api.queuePublish(selectedClipId, platform);
       await load();
-      pushToast({ tone: "success", title: "Publish queued", description: `Mock ${platform} adapter accepted the selected clip.` });
+      pushToast({ tone: "success", title: "게시 큐에 등록되었습니다", description: `모의 ${platform} 어댑터가 선택한 클립을 받았습니다.` });
     } catch (error) {
-      pushToast({ tone: "error", title: "Queue publish failed", description: (error as Error).message });
+      pushToast({ tone: "error", title: "게시 큐 등록에 실패했습니다", description: (error as Error).message });
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (loading) return <LoadingState label="Loading publish queue..." />;
+  if (loading) return <LoadingState label="게시 큐를 불러오는 중..." />;
   if (!queue) {
     if (pageError) {
-      return <ErrorState title="Publish queue unavailable" description={pageError} actionLabel="Retry queue" onAction={() => void load()} />;
+      return <ErrorState title="게시 큐를 사용할 수 없습니다" description={pageError} actionLabel="다시 시도" onAction={() => void load()} />;
     }
-    return <EmptyState title="Publish queue unavailable" description="The queue endpoint did not return data." />;
+    return <EmptyState title="게시 큐를 사용할 수 없습니다" description="큐 엔드포인트에서 데이터를 반환하지 않았습니다." />;
   }
 
   return (
@@ -83,15 +83,15 @@ export function PublishQueuePage() {
 
       <section className="grid gap-8 xl:grid-cols-[0.95fr,1.05fr]">
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
-          <h3 className="font-display text-2xl font-semibold text-white">Queue New Publish Job</h3>
+          <h3 className="font-display text-2xl font-semibold text-white">새 게시 작업 등록</h3>
           <p className="mt-3 text-sm leading-6 text-slate-400">
-            Only clips with a completed export are eligible. This keeps the adapter contract ready for future real platform uploads.
+            완료된 export가 있는 클립만 선택할 수 있습니다. 이렇게 해야 나중에 실제 플랫폼 업로드 어댑터를 붙여도 구조가 유지됩니다.
           </p>
 
           {eligibleClips.length ? (
             <div className="mt-6 space-y-4">
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-300">Exported clip</span>
+                <span className="mb-2 block text-sm font-medium text-slate-300">내보낸 클립</span>
                 <select
                   value={selectedClipId ?? ""}
                   onChange={(event) => setSelectedClipId(Number(event.target.value))}
@@ -106,7 +106,7 @@ export function PublishQueuePage() {
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-300">Platform</span>
+                <span className="mb-2 block text-sm font-medium text-slate-300">플랫폼</span>
                 <select
                   value={platform}
                   onChange={(event) => setPlatform(event.target.value)}
@@ -120,7 +120,7 @@ export function PublishQueuePage() {
             </div>
           ) : (
             <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-4 text-sm leading-6 text-slate-400">
-              No exported clips are ready yet. Approve a clip, run export, then come back here to queue the mock publish job.
+              아직 내보낸 클립이 없습니다. 클립을 승인하고 export를 실행한 뒤 이 화면으로 돌아와 게시 작업을 등록해 주세요.
             </div>
           )}
 
@@ -130,14 +130,14 @@ export function PublishQueuePage() {
             disabled={!eligibleClips.length || submitting}
             className="mt-6 rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Queueing..." : "Queue Publish Job"}
+            {submitting ? "등록 중..." : "게시 작업 등록"}
           </button>
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
           <div className="flex items-center justify-between gap-4">
-            <h3 className="font-display text-2xl font-semibold text-white">Job Activity</h3>
-            <span className="text-sm text-slate-400">{queue.items.length} jobs tracked</span>
+            <h3 className="font-display text-2xl font-semibold text-white">작업 현황</h3>
+            <span className="text-sm text-slate-400">{queue.items.length}건 추적 중</span>
           </div>
           {queue.items.length ? (
             <div className="mt-6 space-y-3">
@@ -147,24 +147,24 @@ export function PublishQueuePage() {
                     <div>
                       <p className="text-sm font-semibold text-white">{job.clip_title ?? `Clip #${job.clip_candidate_id}`}</p>
                       <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">{job.platform}</p>
-                      <p className="mt-3 text-xs text-slate-500">Queued {formatDateTime(job.created_at)}</p>
+                      <p className="mt-3 text-xs text-slate-500">등록 {formatDateTime(job.created_at)}</p>
                     </div>
                     <StatusBadge status={job.status} />
                   </div>
                   {job.result_json ? (
                     <div className="mt-3 rounded-2xl bg-white/[0.03] px-3 py-2 text-xs text-slate-400">
                       {job.status === "posted"
-                        ? `Remote id: ${String(job.result_json.remote_id ?? "mock-posted")}`
+                        ? `원격 ID: ${String(job.result_json.remote_id ?? "mock-posted")}`
                         : job.status === "failed"
-                          ? `Failure: ${String(job.result_json.error ?? "mock publish failure")}`
-                          : "Waiting for mock adapter completion"}
+                          ? `실패 사유: ${String(job.result_json.error ?? "mock publish failure")}`
+                          : "모의 어댑터 완료를 기다리는 중"}
                     </div>
                   ) : null}
                 </div>
               ))}
             </div>
           ) : (
-            <EmptyState title="No publish jobs yet" description="Export a clip and queue it here to simulate downstream platform delivery." />
+            <EmptyState title="아직 게시 작업이 없습니다" description="클립을 내보낸 뒤 이 화면에서 등록하면 플랫폼 전달 흐름을 모의로 확인할 수 있습니다." />
           )}
         </div>
       </section>

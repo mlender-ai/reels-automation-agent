@@ -14,11 +14,11 @@ export function ExportListTable({ items }: ExportListTableProps) {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-black/20 text-slate-400">
             <tr>
-              <th className="px-5 py-4 font-medium">Preview</th>
-              <th className="px-5 py-4 font-medium">Clip</th>
-              <th className="px-5 py-4 font-medium">Status</th>
-              <th className="px-5 py-4 font-medium">Created</th>
-              <th className="px-5 py-4 font-medium">Output</th>
+              <th className="px-5 py-4 font-medium">미리보기</th>
+              <th className="px-5 py-4 font-medium">클립</th>
+              <th className="px-5 py-4 font-medium">상태</th>
+              <th className="px-5 py-4 font-medium">생성 시각</th>
+              <th className="px-5 py-4 font-medium">결과 파일</th>
             </tr>
           </thead>
           <tbody>
@@ -35,14 +35,14 @@ export function ExportListTable({ items }: ExportListTableProps) {
                     </a>
                   ) : (
                     <div className="flex h-20 w-12 items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-slate-500">
-                      N/A
+                      없음
                     </div>
                   )}
                 </td>
                 <td className="px-5 py-4">
                   <div>
                     <p className="font-medium text-white">{item.clip_title ?? `Clip #${item.clip_candidate_id}`}</p>
-                    <p className="mt-1 text-xs text-slate-500">{item.output_path ?? "Pending output path"}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.output_path ?? "결과 경로 대기 중"}</p>
                   </div>
                 </td>
                 <td className="px-5 py-4">
@@ -58,10 +58,10 @@ export function ExportListTable({ items }: ExportListTableProps) {
                         rel="noreferrer"
                         className="rounded-2xl bg-cyan-400/10 px-3 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/15"
                       >
-                        Open video
+                        영상 열기
                       </a>
                     ) : (
-                      <span className="text-slate-500">Not ready</span>
+                      <span className="text-slate-500">아직 준비되지 않음</span>
                     )}
                     {item.subtitle_url ? (
                       <a
@@ -70,7 +70,7 @@ export function ExportListTable({ items }: ExportListTableProps) {
                         rel="noreferrer"
                         className="rounded-2xl bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/15"
                       >
-                        Open subtitles
+                        자막 열기
                       </a>
                     ) : null}
                   </div>

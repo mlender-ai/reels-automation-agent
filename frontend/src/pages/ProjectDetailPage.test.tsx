@@ -100,7 +100,7 @@ describe("ProjectDetailPage", () => {
     vi.mocked(api.startProjectClipGenerationJob).mockReset();
   });
 
-  it("queues transcript extraction and shows an automation activity notice", async () => {
+  it("자막 추출을 대기열에 넣고 자동화 안내를 보여준다", async () => {
     const user = userEvent.setup();
     vi.mocked(api.getProject).mockResolvedValue(makeProject());
     vi.mocked(api.listProjectJobs).mockResolvedValue([]);
@@ -109,10 +109,10 @@ describe("ProjectDetailPage", () => {
     renderProjectDetail();
 
     expect(await screen.findByText("Workflow test project")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Extract Transcript/i }));
+    await user.click(screen.getByRole("button", { name: /자막 추출/i }));
 
-    expect((await screen.findAllByText("Transcript queued")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/background transcription has started/i).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("자막 추출을 대기열에 등록했습니다")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/백그라운드 자막 추출이 시작되었습니다/i).length).toBeGreaterThan(0);
     expect(api.startProjectTranscriptionJob).toHaveBeenCalledWith(3);
   });
 });

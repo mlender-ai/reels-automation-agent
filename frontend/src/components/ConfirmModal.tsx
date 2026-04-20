@@ -20,7 +20,7 @@ export function ConfirmModal({ open, title, description, confirmLabel, onConfirm
             onClick={onClose}
             className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/5"
           >
-            Cancel
+            취소
           </button>
           <button
             type="button"
@@ -34,4 +34,3 @@ export function ConfirmModal({ open, title, description, confirmLabel, onConfirm
     </div>
   );
 }
-

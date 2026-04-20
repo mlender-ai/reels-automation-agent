@@ -17,9 +17,9 @@ import { resolveMediaUrl } from "../lib/media";
 import type { ClipCandidate, Project, WorkflowJob } from "../types";
 
 const presets = [
-  { value: "clean", label: "Clean", note: "Balanced sizing and subtle outline." },
-  { value: "bold", label: "Bold", note: "Higher contrast and stronger emphasis." },
-  { value: "creator", label: "Creator", note: "Heavier treatment for social-first energy." },
+  { value: "clean", label: "클린", note: "균형 잡힌 크기와 은은한 외곽선으로 안정적인 스타일입니다." },
+  { value: "bold", label: "볼드", note: "대비를 높이고 강조를 강하게 준 스타일입니다." },
+  { value: "creator", label: "크리에이터", note: "숏폼 에너지에 맞춰 더 강한 자막 처리를 적용합니다." },
 ];
 
 const ACTIVE_JOB_STATUSES = new Set(["queued", "running"]);
@@ -103,7 +103,7 @@ export function ClipReviewPage() {
     } catch (error) {
       const message = (error as Error).message;
       setPageError(message);
-      pushToast({ tone: "error", title: "Clip review failed to load", description: message });
+      pushToast({ tone: "error", title: "클립 리뷰 화면을 불러오지 못했습니다", description: message });
     } finally {
       if (!options.silent) setLoading(false);
     }
@@ -134,10 +134,10 @@ export function ClipReviewPage() {
       if (job.status === "completed") {
         const description =
           job.job_type === "export"
-            ? "The 1080x1920 MP4 is ready. You can review it from the exports page."
-            : "The mock platform adapter accepted the clip and stored the publish job.";
-        setActionNotice({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} completed`, description });
-        pushToast({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} completed`, description });
+            ? "1080x1920 MP4 결과물이 준비되었습니다. 내보내기 화면에서 바로 확인할 수 있습니다."
+            : "모의 플랫폼 어댑터가 클립을 받아 게시 작업을 저장했습니다.";
+        setActionNotice({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} 완료`, description });
+        pushToast({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} 완료`, description });
         if (job.job_type === "export" && navigateOnExportCompletion) {
           setNavigateOnExportCompletion(false);
           navigate("/exports");
@@ -147,9 +147,9 @@ export function ClipReviewPage() {
           navigate("/publish");
         }
       } else if (job.status === "failed") {
-        const description = job.error_detail ?? "Check the local runtime tools and export prerequisites, then try again.";
-        setActionNotice({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} failed`, description });
-        pushToast({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} failed`, description });
+        const description = job.error_detail ?? "로컬 런타임 도구와 내보내기 조건을 확인한 뒤 다시 시도해 주세요.";
+        setActionNotice({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} 실패`, description });
+        pushToast({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} 실패`, description });
         if (job.job_type === "export") setNavigateOnExportCompletion(false);
         if (job.job_type === "publish") setNavigateOnPublishCompletion(false);
       }
@@ -165,14 +165,14 @@ export function ClipReviewPage() {
       setClip(updated);
       setActionNotice({
         tone: "success",
-        title: "Saved",
-        description: "Timing, metadata, and subtitle styling are now aligned with the next export.",
+        title: "저장되었습니다",
+        description: "타이밍, 메타데이터, 자막 스타일이 다음 내보내기에 맞춰 반영되었습니다.",
       });
-      pushToast({ tone: "success", title: "Clip saved", description: "Timing, metadata, and subtitle preset were updated." });
+      pushToast({ tone: "success", title: "클립을 저장했습니다", description: "타이밍, 메타데이터, 자막 프리셋을 업데이트했습니다." });
     } catch (error) {
       const message = (error as Error).message;
-      setActionNotice({ tone: "error", title: "Save failed", description: `${message} Adjust the timing and try again.` });
-      pushToast({ tone: "error", title: "Save failed", description: message });
+      setActionNotice({ tone: "error", title: "저장에 실패했습니다", description: `${message} 타이밍을 조정한 뒤 다시 시도해 주세요.` });
+      pushToast({ tone: "error", title: "저장에 실패했습니다", description: message });
     } finally {
       setSaving(false);
     }
@@ -185,12 +185,12 @@ export function ClipReviewPage() {
       setActionNotice(null);
       const updated = await api.approveClip(clip.id);
       setClip(updated);
-      setActionNotice({ tone: "success", title: "Approved", description: "This clip is now ready for vertical export." });
-      pushToast({ tone: "success", title: "Clip approved", description: "Export is now unlocked for this candidate." });
+      setActionNotice({ tone: "success", title: "승인되었습니다", description: "이제 이 클립을 세로형 결과물로 내보낼 수 있습니다." });
+      pushToast({ tone: "success", title: "클립을 승인했습니다", description: "이 후보는 이제 내보내기를 진행할 수 있습니다." });
     } catch (error) {
       const message = (error as Error).message;
-      setActionNotice({ tone: "error", title: "Approve failed", description: `${message} Retry once the local API is reachable again.` });
-      pushToast({ tone: "error", title: "Approve failed", description: message });
+      setActionNotice({ tone: "error", title: "승인에 실패했습니다", description: `${message} 로컬 API 연결을 확인한 뒤 다시 시도해 주세요.` });
+      pushToast({ tone: "error", title: "승인에 실패했습니다", description: message });
     } finally {
       setStatusSubmitting(null);
     }
@@ -204,12 +204,12 @@ export function ClipReviewPage() {
       const updated = await api.rejectClip(clip.id);
       setClip(updated);
       setRejectOpen(false);
-      setActionNotice({ tone: "info", title: "Rejected", description: "The clip remains editable, but it no longer looks ready for export." });
-      pushToast({ tone: "info", title: "Clip rejected", description: "You can still return and edit it later if priorities change." });
+      setActionNotice({ tone: "info", title: "반려되었습니다", description: "클립은 계속 수정할 수 있지만, 현재는 내보내기 준비 상태에서 제외됩니다." });
+      pushToast({ tone: "info", title: "클립을 반려했습니다", description: "우선순위가 바뀌면 나중에 다시 열어 수정할 수 있습니다." });
     } catch (error) {
       const message = (error as Error).message;
-      setActionNotice({ tone: "error", title: "Reject failed", description: `${message} Retry if you still want to remove it from the ready queue.` });
-      pushToast({ tone: "error", title: "Reject failed", description: message });
+      setActionNotice({ tone: "error", title: "반려에 실패했습니다", description: `${message} 여전히 준비 큐에서 제외하려면 다시 시도해 주세요.` });
+      pushToast({ tone: "error", title: "반려에 실패했습니다", description: message });
     } finally {
       setStatusSubmitting(null);
     }
@@ -224,18 +224,18 @@ export function ClipReviewPage() {
       setNavigateOnExportCompletion(true);
       setActionNotice({
         tone: "info",
-        title: "Export queued",
-        description: "Vertical render now runs in the background. This screen will keep polling progress until the export lands in the exports list.",
+        title: "내보내기를 대기열에 등록했습니다",
+        description: "세로형 렌더링이 백그라운드에서 실행됩니다. 결과물이 내보내기 목록에 나타날 때까지 이 화면이 진행률을 계속 확인합니다.",
       });
-      pushToast({ tone: "success", title: "Export queued", description: "Background export has started." });
+      pushToast({ tone: "success", title: "내보내기를 시작했습니다", description: "백그라운드 내보내기 작업이 시작되었습니다." });
     } catch (error) {
       const message = (error as Error).message;
       setActionNotice({
         tone: "error",
-        title: "Export failed to start",
-        description: `${message} Check FFmpeg, local disk space, and clip timing, then retry export from this screen.`,
+        title: "내보내기를 시작하지 못했습니다",
+        description: `${message} FFmpeg, 로컬 디스크 공간, 클립 타이밍을 확인한 뒤 이 화면에서 다시 시도해 주세요.`,
       });
-      pushToast({ tone: "error", title: "Export failed to start", description: message });
+      pushToast({ tone: "error", title: "내보내기를 시작하지 못했습니다", description: message });
     }
   }
 
@@ -248,14 +248,14 @@ export function ClipReviewPage() {
       setNavigateOnPublishCompletion(true);
       setActionNotice({
         tone: "info",
-        title: "Publish queued",
-        description: `The mock ${platform} adapter is now processing this exported clip in the background.`,
+        title: "게시 큐에 등록했습니다",
+        description: `모의 ${platform} 어댑터가 이 결과물을 백그라운드에서 처리하고 있습니다.`,
       });
-      pushToast({ tone: "success", title: "Publish queued", description: `Mock ${platform} adapter accepted the request.` });
+      pushToast({ tone: "success", title: "게시 큐에 등록했습니다", description: `모의 ${platform} 어댑터가 요청을 받았습니다.` });
     } catch (error) {
       const message = (error as Error).message;
-      setActionNotice({ tone: "error", title: "Queue publish failed", description: `${message} Export must exist before queueing a publish job.` });
-      pushToast({ tone: "error", title: "Queue publish failed", description: message });
+      setActionNotice({ tone: "error", title: "게시 큐 등록에 실패했습니다", description: `${message} 게시 작업을 등록하려면 먼저 결과물이 있어야 합니다.` });
+      pushToast({ tone: "error", title: "게시 큐 등록에 실패했습니다", description: message });
     }
   }
 
@@ -272,20 +272,20 @@ export function ClipReviewPage() {
     });
   }
 
-  if (loading) return <LoadingState label="Loading clip review..." />;
+  if (loading) return <LoadingState label="클립 리뷰 화면을 불러오는 중..." />;
   if (!clip || !project) {
     if (pageError) {
-      return <ErrorState title="Clip review unavailable" description={pageError} actionLabel="Retry clip" onAction={() => void load()} />;
+      return <ErrorState title="클립 리뷰 화면을 불러올 수 없습니다" description={pageError} actionLabel="다시 시도" onAction={() => void load()} />;
     }
-    return <EmptyState title="Clip not found" description="This clip could not be loaded from the local API." />;
+    return <EmptyState title="클립을 찾을 수 없습니다" description="로컬 API에서 이 클립을 불러오지 못했습니다." />;
   }
 
   const preflightItems = [
-    { label: "Clip approved", ready: clip.status === "approved" || clip.status === "exported" },
-    { label: "Timing valid", ready: !validationError },
-    { label: "Metadata filled", ready: Boolean(form.suggested_title.trim() && form.suggested_description.trim() && form.suggested_hashtags.trim()) },
-    { label: "Export ready", ready: clip.status === "approved" || clip.status === "exported" },
-    { label: "Publish ready", ready: Boolean(clip.latest_export?.output_url) && !activePublishJob },
+    { label: "클립 승인됨", ready: clip.status === "approved" || clip.status === "exported" },
+    { label: "타이밍 유효", ready: !validationError },
+    { label: "메타데이터 입력 완료", ready: Boolean(form.suggested_title.trim() && form.suggested_description.trim() && form.suggested_hashtags.trim()) },
+    { label: "내보내기 준비 완료", ready: clip.status === "approved" || clip.status === "exported" },
+    { label: "게시 큐 등록 가능", ready: Boolean(clip.latest_export?.output_url) && !activePublishJob },
   ];
 
   return (
@@ -313,7 +313,7 @@ export function ClipReviewPage() {
                     src={previewUrl}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-slate-500">Preview unavailable</div>
+                  <div className="flex h-full items-center justify-center text-slate-500">미리보기를 사용할 수 없습니다</div>
                 )}
               </div>
             </div>
@@ -324,7 +324,7 @@ export function ClipReviewPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
               >
                 <SkipBack className="h-4 w-4" />
-                Jump to start
+                시작 지점으로 이동
               </button>
               <button
                 type="button"
@@ -332,30 +332,30 @@ export function ClipReviewPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
               >
                 <SkipForward className="h-4 w-4" />
-                Jump to end
+                끝 지점으로 이동
               </button>
             </div>
           </div>
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
-          <h3 className="font-display text-xl font-semibold text-white">Quick Facts</h3>
+          <h3 className="font-display text-xl font-semibold text-white">빠른 확인</h3>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Start</p>
+              <p className="text-xs text-slate-500">시작</p>
               <p className="mt-2 font-semibold text-white">{form.start_time.toFixed(2)}s</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">End</p>
+              <p className="text-xs text-slate-500">종료</p>
               <p className="mt-2 font-semibold text-white">{form.end_time.toFixed(2)}s</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Subtitle Preset</p>
+              <p className="text-xs text-slate-500">자막 프리셋</p>
               <p className="mt-2 font-semibold capitalize text-white">{form.subtitle_preset}</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">Latest Export</p>
-              <p className="mt-2 font-semibold text-white">{clip.latest_export?.status ?? "none"}</p>
+              <p className="text-xs text-slate-500">최근 내보내기</p>
+              <p className="mt-2 font-semibold text-white">{clip.latest_export?.status ?? "없음"}</p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -364,28 +364,28 @@ export function ClipReviewPage() {
               onClick={() => nudgeBoundary("start_time", -0.5)}
               className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
             >
-              Start -0.5s
+              시작 -0.5초
             </button>
             <button
               type="button"
               onClick={() => nudgeBoundary("start_time", 0.5)}
               className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
             >
-              Start +0.5s
+              시작 +0.5초
             </button>
             <button
               type="button"
               onClick={() => nudgeBoundary("end_time", -0.5)}
               className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
             >
-              End -0.5s
+              종료 -0.5초
             </button>
             <button
               type="button"
               onClick={() => nudgeBoundary("end_time", 0.5)}
               className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
             >
-              End +0.5s
+              종료 +0.5초
             </button>
           </div>
           {clip.latest_export?.output_url ? (
@@ -395,7 +395,7 @@ export function ClipReviewPage() {
                 onClick={() => navigate("/exports")}
                 className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
               >
-                View exports
+                내보내기 목록 보기
               </button>
               <a
                 href={resolveMediaUrl(clip.latest_export.output_url)}
@@ -404,7 +404,7 @@ export function ClipReviewPage() {
                 className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15"
               >
                 <ExternalLink className="h-4 w-4" />
-                Open exported video
+                결과 영상 열기
               </a>
             </div>
           ) : null}
@@ -413,8 +413,8 @@ export function ClipReviewPage() {
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="font-display text-xl font-semibold text-white">Export Preflight</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Use this checklist before starting a background render or queueing a publish job.</p>
+              <h3 className="font-display text-xl font-semibold text-white">내보내기 사전 점검</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">백그라운드 렌더링이나 게시 큐 등록을 시작하기 전에 이 체크리스트를 확인하세요.</p>
             </div>
             <Clock3 className="mt-1 h-5 w-5 text-slate-400" />
           </div>
@@ -433,16 +433,16 @@ export function ClipReviewPage() {
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Review</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">리뷰</p>
               <h3 className="mt-3 font-display text-3xl font-semibold text-white">{project.title}</h3>
-              <p className="mt-2 text-sm text-slate-400">Fine-tune timing, metadata, and subtitle style before export.</p>
+              <p className="mt-2 text-sm text-slate-400">내보내기 전에 타이밍, 메타데이터, 자막 스타일을 세밀하게 조정하세요.</p>
             </div>
             <StatusBadge status={clip.status} />
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Start time</span>
+              <span className="mb-2 block text-sm font-medium text-slate-300">시작 시간</span>
               <input
                 type="number"
                 min={0}
@@ -453,7 +453,7 @@ export function ClipReviewPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">End time</span>
+              <span className="mb-2 block text-sm font-medium text-slate-300">종료 시간</span>
               <input
                 type="number"
                 min={0}
@@ -464,7 +464,7 @@ export function ClipReviewPage() {
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Title</span>
+              <span className="mb-2 block text-sm font-medium text-slate-300">제목</span>
               <input
                 value={form.suggested_title}
                 onChange={(event) => setForm((current) => ({ ...current, suggested_title: event.target.value }))}
@@ -472,7 +472,7 @@ export function ClipReviewPage() {
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Description</span>
+              <span className="mb-2 block text-sm font-medium text-slate-300">설명</span>
               <textarea
                 rows={4}
                 value={form.suggested_description}
@@ -481,7 +481,7 @@ export function ClipReviewPage() {
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Hashtags</span>
+              <span className="mb-2 block text-sm font-medium text-slate-300">해시태그</span>
               <input
                 value={form.suggested_hashtags}
                 onChange={(event) => setForm((current) => ({ ...current, suggested_hashtags: event.target.value }))}
@@ -489,7 +489,7 @@ export function ClipReviewPage() {
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Subtitle preset</span>
+              <span className="mb-2 block text-sm font-medium text-slate-300">자막 프리셋</span>
               <select
                 value={form.subtitle_preset}
                 onChange={(event) => setForm((current) => ({ ...current, subtitle_preset: event.target.value }))}
@@ -532,7 +532,7 @@ export function ClipReviewPage() {
               className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {saving ? "Saving..." : "Save"}
+              {saving ? "저장 중..." : "저장"}
             </button>
             <button
               type="button"
@@ -541,7 +541,7 @@ export function ClipReviewPage() {
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
             >
               <Check className="h-4 w-4" />
-              {statusSubmitting === "approve" ? "Approving..." : "Approve"}
+              {statusSubmitting === "approve" ? "승인 중..." : "승인"}
             </button>
             <button
               type="button"
@@ -550,7 +550,7 @@ export function ClipReviewPage() {
               className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
             >
               <X className="h-4 w-4" />
-              Reject
+              반려
             </button>
             <button
               type="button"
@@ -559,7 +559,7 @@ export function ClipReviewPage() {
               className="inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
-              {activeExportJob ? `${activeExportJob.progress}% · Exporting` : "Export 1080x1920"}
+              {activeExportJob ? `${activeExportJob.progress}% · 내보내는 중` : "1080x1920으로 내보내기"}
             </button>
           </div>
         </div>
@@ -567,8 +567,8 @@ export function ClipReviewPage() {
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h3 className="font-display text-xl font-semibold text-white">Mock Publish</h3>
-              <p className="mt-2 text-sm text-slate-400">Queue the exported clip to a mock platform adapter. Real uploads are intentionally out of scope for v1.</p>
+              <h3 className="font-display text-xl font-semibold text-white">모의 게시</h3>
+              <p className="mt-2 text-sm text-slate-400">내보낸 클립을 모의 플랫폼 어댑터에 등록합니다. 실제 업로드는 v1 범위에서 의도적으로 제외했습니다.</p>
             </div>
             <StatusBadge status={clip.latest_export?.output_url ? "ready" : "not_connected"} />
           </div>
@@ -582,7 +582,7 @@ export function ClipReviewPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
-                {activePublishJob?.payload_json?.platform === platform ? `${activePublishJob.progress}% · Queueing` : `Queue ${platform}`}
+                {activePublishJob?.payload_json?.platform === platform ? `${activePublishJob.progress}% · 등록 중` : `${platform} 큐에 넣기`}
               </button>
             ))}
           </div>
@@ -590,17 +590,17 @@ export function ClipReviewPage() {
 
         <WorkflowJobList
           jobs={relevantJobs}
-          title="Clip Automation Activity"
-          description="Export and publish runs continue in the background while you keep adjusting metadata and timing."
-          emptyTitle="Export and publish runs for this clip will appear here."
+          title="클립 자동화 작업"
+          description="타이밍과 메타데이터를 계속 조정하는 동안 내보내기와 게시 작업은 백그라운드에서 이어집니다."
+          emptyTitle="이 클립의 내보내기 및 게시 작업이 여기에 표시됩니다."
         />
       </section>
 
       <ConfirmModal
         open={rejectOpen}
-        title="Reject this clip?"
-        description="This marks the clip as rejected in the review queue. You can still return and edit it later if priorities change."
-        confirmLabel="Reject clip"
+        title="이 클립을 반려할까요?"
+        description="검토 큐에서 이 클립을 반려 상태로 표시합니다. 우선순위가 바뀌면 나중에 다시 열어 수정할 수 있습니다."
+        confirmLabel="클립 반려"
         onConfirm={handleReject}
         onClose={() => setRejectOpen(false)}
       />

@@ -7,17 +7,17 @@ describe("validateSelectedVideo", () => {
     expect(validateSelectedVideo({ name: "episode.mp4", size: 12 * 1024 * 1024, type: "video/mp4" })).toBeNull();
   });
 
-  it("rejects unsupported file extensions", () => {
-    expect(validateSelectedVideo({ name: "notes.txt", size: 1024, type: "text/plain" })).toContain("Unsupported video type");
+  it("지원하지 않는 확장자를 거부한다", () => {
+    expect(validateSelectedVideo({ name: "notes.txt", size: 1024, type: "text/plain" })).toContain("지원하지 않는 영상 형식");
   });
 
-  it("rejects oversized files", () => {
+  it("용량이 큰 파일을 거부한다", () => {
     expect(validateSelectedVideo({ name: "huge.mov", size: MAX_UPLOAD_SIZE_BYTES + 1, type: "video/quicktime" })).toContain(
-      "too large",
+      "파일 용량이 너무 큽니다",
     );
   });
 
-  it("rejects unsupported mime types even when the extension looks valid", () => {
-    expect(validateSelectedVideo({ name: "episode.mp4", size: 1024, type: "text/plain" })).toContain("not supported");
+  it("확장자가 맞아도 지원하지 않는 mime 타입이면 거부한다", () => {
+    expect(validateSelectedVideo({ name: "episode.mp4", size: 1024, type: "text/plain" })).toContain("지원하지 않습니다");
   });
 });

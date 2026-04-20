@@ -7,11 +7,11 @@ describe("validateClipWindow", () => {
     expect(validateClipWindow(10, 28, 120)).toBeNull();
   });
 
-  it("rejects negative times", () => {
-    expect(validateClipWindow(-1, 20, 120)).toContain("zero or greater");
+  it("음수 시간은 거부한다", () => {
+    expect(validateClipWindow(-1, 20, 120)).toContain("0초 이상");
   });
 
-  it("rejects windows that exceed the source duration", () => {
-    expect(validateClipWindow(10, 55, 40)).toContain("source video duration");
+  it("원본 길이를 넘는 구간은 거부한다", () => {
+    expect(validateClipWindow(10, 55, 40)).toContain("원본 영상 길이");
   });
 });

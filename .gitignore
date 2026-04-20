@@ -8,6 +8,9 @@ __pycache__/
 backend/.venv/
 backend/data/app.db
 backend/data/models/
+backend/data/seed/*.mp4
+backend/data/seed/*.mov
+backend/data/seed/*.m4v
 backend/data/input/*
 !backend/data/input/.gitkeep
 backend/data/projects/*

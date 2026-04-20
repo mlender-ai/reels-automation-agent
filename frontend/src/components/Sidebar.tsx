@@ -2,20 +2,20 @@ import { BarChart3, FolderPlus, FolderKanban, Clapperboard, Send } from "lucide-
 import { NavLink } from "react-router-dom";
 
 const navItems = [
-  { label: "Dashboard", to: "/", icon: BarChart3 },
-  { label: "New Project", to: "/projects/new", icon: FolderPlus },
-  { label: "Exports", to: "/exports", icon: Clapperboard },
-  { label: "Publish Queue", to: "/publish", icon: Send },
+  { label: "대시보드", to: "/", icon: BarChart3 },
+  { label: "새 프로젝트", to: "/projects/new", icon: FolderPlus },
+  { label: "내보내기", to: "/exports", icon: Clapperboard },
+  { label: "게시 큐", to: "/publish", icon: Send },
 ];
 
 export function Sidebar() {
   return (
     <aside className="hidden w-72 shrink-0 border-r border-white/10 bg-slate-950/70 px-5 py-6 lg:block">
       <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-panel">
-        <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">AI Creator Ops</p>
-        <h1 className="mt-3 font-display text-2xl font-semibold text-white">Reels Automation Agent</h1>
+        <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">AI 숏폼 운영</p>
+        <h1 className="mt-3 font-display text-2xl font-semibold text-white">릴스 자동화 에이전트</h1>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Turn one long-form video into reviewable short clips, export vertical reels, and stage multi-platform publishing from a local dashboard.
+          긴 영상 하나를 검토 가능한 숏폼 후보로 만들고, 세로형으로 내보낸 뒤 멀티 플랫폼 게시 준비까지 로컬 대시보드에서 관리합니다.
         </p>
       </div>
 
@@ -44,10 +44,10 @@ export function Sidebar() {
       <div className="mt-10 rounded-3xl border border-emerald-400/10 bg-emerald-400/5 p-5">
         <div className="flex items-center gap-3">
           <FolderKanban className="h-5 w-5 text-emerald-300" />
-          <p className="text-sm font-medium text-emerald-100">Automation Loop</p>
+          <p className="text-sm font-medium text-emerald-100">자동화 루프</p>
         </div>
         <p className="mt-3 text-sm leading-6 text-emerald-50/75">
-          Local upload, transcript, clip scoring, approval, export, mock publish, and AI team review running off the same repository.
+          로컬 업로드, 자막, 클립 점수화, 승인, 내보내기, 모의 게시, AI 팀 검토가 같은 레포 안에서 함께 돌아갑니다.
         </p>
       </div>
     </aside>

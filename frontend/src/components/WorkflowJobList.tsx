@@ -9,7 +9,7 @@ type WorkflowJobListProps = {
   emptyTitle?: string;
 };
 
-export function WorkflowJobList({ jobs, title, description, emptyTitle = "No automation runs yet." }: WorkflowJobListProps) {
+export function WorkflowJobList({ jobs, title, description, emptyTitle = "아직 자동화 실행 기록이 없습니다." }: WorkflowJobListProps) {
   return (
     <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -17,7 +17,7 @@ export function WorkflowJobList({ jobs, title, description, emptyTitle = "No aut
           <h3 className="font-display text-xl font-semibold text-white">{title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
         </div>
-        <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-slate-300">{jobs.length} runs</span>
+        <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-slate-300">{jobs.length}건</span>
       </div>
 
       {jobs.length === 0 ? (
@@ -29,7 +29,7 @@ export function WorkflowJobList({ jobs, title, description, emptyTitle = "No aut
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-white">{workflowJobTypeLabel(job.job_type)}</p>
-                  <p className="mt-1 text-xs text-slate-500">Started {formatDateTime(job.started_at ?? job.created_at)}</p>
+                  <p className="mt-1 text-xs text-slate-500">시작 {formatDateTime(job.started_at ?? job.created_at)}</p>
                 </div>
                 <StatusBadge status={job.status} />
               </div>
@@ -45,12 +45,12 @@ export function WorkflowJobList({ jobs, title, description, emptyTitle = "No aut
                   style={{ width: `${Math.max(6, job.progress)}%` }}
                 />
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{job.message ?? "Waiting for the next progress update."}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">{job.message ?? "다음 진행 상황을 기다리는 중입니다."}</p>
               {job.error_detail ? <p className="mt-2 text-sm leading-6 text-rose-200">{job.error_detail}</p> : null}
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span>{job.progress}% complete</span>
-                {job.clip_title ? <span>Clip: {job.clip_title}</span> : null}
-                {job.completed_at ? <span>Finished {formatDateTime(job.completed_at)}</span> : null}
+                <span>{job.progress}% 완료</span>
+                {job.clip_title ? <span>클립: {job.clip_title}</span> : null}
+                {job.completed_at ? <span>종료 {formatDateTime(job.completed_at)}</span> : null}
               </div>
             </div>
           ))}

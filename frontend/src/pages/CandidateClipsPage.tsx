@@ -32,7 +32,7 @@ export function CandidateClipsPage() {
     } catch (error) {
       const message = (error as Error).message;
       setPageError(message);
-      pushToast({ tone: "error", title: "Candidate clips failed to load", description: message });
+      pushToast({ tone: "error", title: "클립 후보를 불러오지 못했습니다", description: message });
     } finally {
       setLoading(false);
     }
@@ -50,14 +50,14 @@ export function CandidateClipsPage() {
       setClips((current) => current.map((clip) => (clip.id === clipId ? updated : clip)));
       setActionNotice({
         tone: "success",
-        title: "Clip approved",
-        description: "This candidate is now ready for export and can move into the next production step.",
+        title: "클립이 승인되었습니다",
+        description: "이 후보는 이제 내보내기 가능 상태이며 다음 제작 단계로 넘어갈 수 있습니다.",
       });
-      pushToast({ tone: "success", title: "Clip approved", description: "This candidate is now ready for export." });
+      pushToast({ tone: "success", title: "클립이 승인되었습니다", description: "이 후보는 이제 내보내기 가능합니다." });
     } catch (error) {
       const message = (error as Error).message;
-      setActionNotice({ tone: "error", title: "Approval failed", description: `${message} Retry when you are ready.` });
-      pushToast({ tone: "error", title: "Approval failed", description: message });
+      setActionNotice({ tone: "error", title: "승인에 실패했습니다", description: `${message} 준비가 되면 다시 시도해 주세요.` });
+      pushToast({ tone: "error", title: "승인에 실패했습니다", description: message });
     } finally {
       setBusyClipId(null);
     }
@@ -72,37 +72,37 @@ export function CandidateClipsPage() {
       setClips((current) => current.map((clip) => (clip.id === rejectingId ? updated : clip)));
       setActionNotice({
         tone: "info",
-        title: "Clip rejected",
-        description: "It stays visible for traceability, but it will no longer appear export-ready.",
+        title: "클립이 반려되었습니다",
+        description: "기록 추적을 위해 목록에는 남아 있지만 더 이상 내보내기 가능 상태로 보이지 않습니다.",
       });
-      pushToast({ tone: "info", title: "Clip rejected", description: "It stays visible but marked as rejected for traceability." });
+      pushToast({ tone: "info", title: "클립이 반려되었습니다", description: "기록 추적을 위해 목록에는 남아 있습니다." });
     } catch (error) {
       const message = (error as Error).message;
-      setActionNotice({ tone: "error", title: "Reject failed", description: `${message} Exported clips must stay tracked, so edit and re-export instead.` });
-      pushToast({ tone: "error", title: "Reject failed", description: message });
+      setActionNotice({ tone: "error", title: "반려에 실패했습니다", description: `${message} 이미 내보낸 클립은 추적이 필요하므로 수정 후 다시 내보내야 합니다.` });
+      pushToast({ tone: "error", title: "반려에 실패했습니다", description: message });
     } finally {
       setRejectingId(null);
       setBusyClipId(null);
     }
   }
 
-  if (loading) return <LoadingState label="Loading candidate clips..." />;
+  if (loading) return <LoadingState label="클립 후보를 불러오는 중..." />;
   if (!project) {
     if (pageError) {
-      return <ErrorState title="Candidate queue unavailable" description={pageError} actionLabel="Retry queue" onAction={() => void load()} />;
+      return <ErrorState title="후보 큐를 사용할 수 없습니다" description={pageError} actionLabel="다시 시도" onAction={() => void load()} />;
     }
-    return <EmptyState title="Project missing" description="This project could not be found." />;
+    return <EmptyState title="프로젝트를 찾을 수 없습니다" description="이 프로젝트를 찾지 못했습니다." />;
   }
 
   return (
     <div className="space-y-8">
       <section className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-white/[0.04] p-6 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Review Queue</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">검토 큐</p>
           <h3 className="mt-3 font-display text-3xl font-semibold text-white">{project.title}</h3>
           <p className="mt-2 text-sm text-slate-400">
-            {clips.length} candidates · {clips.filter((clip) => clip.status === "pending").length} pending ·{" "}
-            {clips.filter((clip) => clip.status === "approved" || clip.status === "exported").length} approved/exported
+            후보 {clips.length}개 · 대기 {clips.filter((clip) => clip.status === "pending").length}개 ·{" "}
+            승인/내보내기 {clips.filter((clip) => clip.status === "approved" || clip.status === "exported").length}개
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -110,7 +110,7 @@ export function CandidateClipsPage() {
             to={`/projects/${project.id}`}
             className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/5"
           >
-            Back to project
+            프로젝트로 돌아가기
           </Link>
         </div>
       </section>
@@ -143,18 +143,18 @@ export function CandidateClipsPage() {
         </section>
       ) : (
         <EmptyState
-          title="No candidates yet"
-          description="Generate clip candidates from the project detail page after transcription is complete."
-          actionLabel="Open project"
+          title="아직 후보가 없습니다"
+          description="자막 추출이 끝난 뒤 프로젝트 상세에서 클립 후보를 생성해 주세요."
+          actionLabel="프로젝트 열기"
           actionHref={`/projects/${project.id}`}
         />
       )}
 
       <ConfirmModal
         open={rejectingId != null}
-        title="Reject clip candidate?"
-        description="This keeps the candidate in the review log but marks it as rejected so it does not look ready for export."
-        confirmLabel="Reject clip"
+        title="이 클립 후보를 반려할까요?"
+        description="리뷰 로그에는 남겨두되 반려 상태로 표시하여 내보내기 준비 완료처럼 보이지 않게 합니다."
+        confirmLabel="클립 반려"
         onConfirm={confirmReject}
         onClose={() => setRejectingId(null)}
       />

@@ -1,6 +1,6 @@
 export function formatDateTime(value?: string | null) {
-  if (!value) return "N/A";
-  return new Date(value).toLocaleString([], {
+  if (!value) return "없음";
+  return new Date(value).toLocaleString("ko-KR", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -28,28 +28,28 @@ export function truncate(text: string, length = 120) {
 export function nextActionLabel(nextAction?: string) {
   switch (nextAction) {
     case "transcribe":
-      return "Run transcript extraction";
+      return "자막 추출 실행";
     case "generate_clips":
-      return "Generate clip candidates";
+      return "클립 후보 생성";
     case "review_clips":
-      return "Review pending clips";
+      return "후보 검토 진행";
     case "export_or_publish":
-      return "Export or queue publish";
+      return "내보내기 또는 게시 큐";
     default:
-      return "Upload a source video";
+      return "원본 영상 업로드";
   }
 }
 
 export function workflowJobTypeLabel(jobType: string) {
   switch (jobType) {
     case "transcribe":
-      return "Transcript Extraction";
+      return "자막 추출";
     case "generate_clips":
-      return "Clip Generation";
+      return "클립 후보 생성";
     case "export":
-      return "Vertical Export";
+      return "세로형 내보내기";
     case "publish":
-      return "Publish Queue";
+      return "게시 큐";
     default:
       return jobType.replace(/_/g, " ");
   }

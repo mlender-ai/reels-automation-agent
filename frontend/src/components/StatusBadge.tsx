@@ -22,10 +22,30 @@ const statusStyles: Record<string, string> = {
   pending: "bg-amber-500/20 text-amber-200",
 };
 
+const statusLabels: Record<string, string> = {
+  draft: "초안",
+  uploaded: "업로드됨",
+  transcribed: "자막 완료",
+  clips_generated: "후보 생성됨",
+  ready_for_review: "검토 대기",
+  approved: "승인됨",
+  rejected: "반려됨",
+  exported: "내보내기 완료",
+  processing: "처리 중",
+  running: "실행 중",
+  completed: "완료",
+  queued: "대기열",
+  failed: "실패",
+  posted: "게시됨",
+  ready: "준비됨",
+  not_connected: "연결 전",
+  pending: "대기",
+};
+
 export function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium capitalize ${statusStyles[status] ?? "bg-white/10 text-white"}`}>
-      {status.replace(/_/g, " ")}
+      {statusLabels[status] ?? status.replace(/_/g, " ")}
     </span>
   );
 }

@@ -22,19 +22,19 @@ export function validateSelectedVideo(file: UploadCandidate): string | null {
   const lowered = file.name.toLowerCase();
   const hasAllowedExtension = ALLOWED_VIDEO_EXTENSIONS.some((extension) => lowered.endsWith(extension));
   if (!hasAllowedExtension) {
-    return `Unsupported video type. Use one of: ${ALLOWED_VIDEO_EXTENSIONS.join(", ")}`;
+    return `지원하지 않는 영상 형식입니다. 다음 형식만 업로드할 수 있습니다: ${ALLOWED_VIDEO_EXTENSIONS.join(", ")}`;
   }
 
   if (file.type && !ALLOWED_VIDEO_MIME_TYPES.includes(file.type)) {
-    return `The selected file type is not supported. Expected one of: ${ALLOWED_VIDEO_MIME_TYPES.filter((value) => value !== "application/octet-stream").join(", ")}`;
+    return `선택한 파일 형식은 지원하지 않습니다. 허용되는 MIME 타입: ${ALLOWED_VIDEO_MIME_TYPES.filter((value) => value !== "application/octet-stream").join(", ")}`;
   }
 
   if (file.size <= 0) {
-    return "The selected file is empty.";
+    return "선택한 파일이 비어 있습니다.";
   }
 
   if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-    return `File is too large. Keep uploads under ${MAX_UPLOAD_SIZE_MB} MB.`;
+    return `파일 용량이 너무 큽니다. ${MAX_UPLOAD_SIZE_MB}MB 이하만 업로드해 주세요.`;
   }
 
   return null;
