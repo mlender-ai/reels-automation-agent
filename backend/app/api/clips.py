@@ -11,6 +11,7 @@ from app.models.publish_job import PublishJob
 from app.schemas.clip import ClipCandidateRead, ClipCandidateUpdate
 from app.schemas.export import ExportRead
 from app.schemas.publish import PublishJobRead, QueuePublishRequest
+from app.services.clip_workflow_service import transition_clip_status
 from app.services.export_service import export_clip
 from app.services.project_service import get_project_or_404, latest_source_video, latest_transcript
 from app.services.publish_service import create_publish_job
@@ -81,7 +82,7 @@ def update_clip_endpoint(clip_id: int, payload: ClipCandidateUpdate, db: Session
 @router.post("/clips/{clip_id}/approve", response_model=ClipCandidateRead)
 def approve_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
     clip = get_clip_or_404(db, clip_id)
-    clip.status = ClipStatus.approved.value
+    transition_clip_status(clip, ClipStatus.approved)
     db.add(clip)
     db.commit()
     return serialize_clip(get_clip_or_404(db, clip_id))
@@ -90,7 +91,7 @@ def approve_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
 @router.post("/clips/{clip_id}/reject", response_model=ClipCandidateRead)
 def reject_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
     clip = get_clip_or_404(db, clip_id)
-    clip.status = ClipStatus.rejected.value
+    transition_clip_status(clip, ClipStatus.rejected)
     db.add(clip)
     db.commit()
     return serialize_clip(get_clip_or_404(db, clip_id))

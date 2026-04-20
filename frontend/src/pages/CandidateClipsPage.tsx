@@ -18,6 +18,7 @@ export function CandidateClipsPage() {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [busyClipId, setBusyClipId] = useState<number | null>(null);
   const [pageError, setPageError] = useState("");
+  const [actionNotice, setActionNotice] = useState<{ tone: "error" | "success" | "info"; title: string; description: string } | null>(null);
   const { pushToast } = useToast();
 
   async function load() {
@@ -44,11 +45,19 @@ export function CandidateClipsPage() {
   async function handleApprove(clipId: number) {
     try {
       setBusyClipId(clipId);
+      setActionNotice(null);
       const updated = await api.approveClip(clipId);
       setClips((current) => current.map((clip) => (clip.id === clipId ? updated : clip)));
+      setActionNotice({
+        tone: "success",
+        title: "Clip approved",
+        description: "This candidate is now ready for export and can move into the next production step.",
+      });
       pushToast({ tone: "success", title: "Clip approved", description: "This candidate is now ready for export." });
     } catch (error) {
-      pushToast({ tone: "error", title: "Approval failed", description: (error as Error).message });
+      const message = (error as Error).message;
+      setActionNotice({ tone: "error", title: "Approval failed", description: `${message} Retry when you are ready.` });
+      pushToast({ tone: "error", title: "Approval failed", description: message });
     } finally {
       setBusyClipId(null);
     }
@@ -58,11 +67,19 @@ export function CandidateClipsPage() {
     if (rejectingId == null) return;
     try {
       setBusyClipId(rejectingId);
+      setActionNotice(null);
       const updated = await api.rejectClip(rejectingId);
       setClips((current) => current.map((clip) => (clip.id === rejectingId ? updated : clip)));
+      setActionNotice({
+        tone: "info",
+        title: "Clip rejected",
+        description: "It stays visible for traceability, but it will no longer appear export-ready.",
+      });
       pushToast({ tone: "info", title: "Clip rejected", description: "It stays visible but marked as rejected for traceability." });
     } catch (error) {
-      pushToast({ tone: "error", title: "Reject failed", description: (error as Error).message });
+      const message = (error as Error).message;
+      setActionNotice({ tone: "error", title: "Reject failed", description: `${message} Exported clips must stay tracked, so edit and re-export instead.` });
+      pushToast({ tone: "error", title: "Reject failed", description: message });
     } finally {
       setRejectingId(null);
       setBusyClipId(null);
@@ -97,6 +114,21 @@ export function CandidateClipsPage() {
           </Link>
         </div>
       </section>
+
+      {actionNotice ? (
+        <section
+          className={`rounded-3xl border px-5 py-4 text-sm ${
+            actionNotice.tone === "error"
+              ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
+              : actionNotice.tone === "success"
+                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                : "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"
+          }`}
+        >
+          <p className="font-semibold">{actionNotice.title}</p>
+          <p className="mt-2 leading-6 text-white/85">{actionNotice.description}</p>
+        </section>
+      ) : null}
 
       {clips.length ? (
         <section className="grid gap-6 md:grid-cols-2 2xl:grid-cols-3">

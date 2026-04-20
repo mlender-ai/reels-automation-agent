@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.constants import PublishStatus
 from app.models.clip_candidate import ClipCandidate
 from app.models.publish_job import PublishJob
+from app.utils.paths import resolve_data_path
 
 
 class PublishAdapter(ABC):
@@ -68,11 +69,34 @@ def get_publish_adapter(platform: str) -> PublishAdapter:
         raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}") from exc
 
 
-def create_publish_job(db: Session, clip: ClipCandidate, platform: str) -> PublishJob:
+def _validate_publishable_clip(clip: ClipCandidate, platform: str) -> tuple[PublishAdapter, Any]:
     adapter = get_publish_adapter(platform)
     latest_export = clip.exports[0] if getattr(clip, "exports", None) else None
+    if clip.status not in {"approved", "exported"}:
+        raise HTTPException(status_code=400, detail="Approve the clip and create a completed export before queueing publish")
     if not latest_export or latest_export.status != "completed":
         raise HTTPException(status_code=400, detail="Export the clip before adding it to the publish queue")
+    if not latest_export.output_path or not resolve_data_path(latest_export.output_path).exists():
+        raise HTTPException(status_code=400, detail="The exported video file is missing on disk. Run export again before queueing publish.")
+    if not clip.suggested_title.strip() or not clip.suggested_description.strip() or not clip.suggested_hashtags.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Complete the clip title, description, and hashtags before queueing publish.",
+        )
+
+    for job in getattr(clip, "publish_jobs", []):
+        if job.platform != platform:
+            continue
+        if job.status == PublishStatus.queued.value:
+            raise HTTPException(status_code=409, detail=f"A {platform} publish job is already queued for this clip")
+        if job.status == PublishStatus.posted.value:
+            raise HTTPException(status_code=409, detail=f"This clip has already been posted to {platform} in the mock publish queue")
+
+    return adapter, latest_export
+
+
+def create_publish_job(db: Session, clip: ClipCandidate, platform: str) -> PublishJob:
+    adapter, latest_export = _validate_publishable_clip(clip, platform)
     validation = adapter.validate_account()
     payload = {
         "clip": {

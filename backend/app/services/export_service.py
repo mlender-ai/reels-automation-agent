@@ -25,6 +25,8 @@ def export_clip(
 ) -> Export:
     if clip.status not in {ClipStatus.approved.value, ClipStatus.exported.value}:
         raise HTTPException(status_code=400, detail="Clip must be approved before export")
+    if any(export_record.status == ExportStatus.processing.value for export_record in clip.exports):
+        raise HTTPException(status_code=409, detail="An export is already running for this clip")
 
     exports_dir = project_exports_dir(project.id)
     exports_dir.mkdir(parents=True, exist_ok=True)

@@ -30,6 +30,7 @@ export function ClipReviewPage() {
   const [exporting, setExporting] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [queueingPlatform, setQueueingPlatform] = useState<string | null>(null);
+  const [statusSubmitting, setStatusSubmitting] = useState<"approve" | "reject" | null>(null);
   const [pageError, setPageError] = useState("");
   const [actionNotice, setActionNotice] = useState<{ tone: "error" | "info" | "success"; title: string; description: string } | null>(
     null,
@@ -112,6 +113,7 @@ export function ClipReviewPage() {
   async function handleApprove() {
     if (!clip) return;
     try {
+      setStatusSubmitting("approve");
       setActionNotice(null);
       const updated = await api.approveClip(clip.id);
       setClip(updated);
@@ -121,12 +123,15 @@ export function ClipReviewPage() {
       const message = (error as Error).message;
       setActionNotice({ tone: "error", title: "Approve failed", description: `${message} Retry once the local API is reachable again.` });
       pushToast({ tone: "error", title: "Approve failed", description: message });
+    } finally {
+      setStatusSubmitting(null);
     }
   }
 
   async function handleReject() {
     if (!clip) return;
     try {
+      setStatusSubmitting("reject");
       setActionNotice(null);
       const updated = await api.rejectClip(clip.id);
       setClip(updated);
@@ -137,6 +142,8 @@ export function ClipReviewPage() {
       const message = (error as Error).message;
       setActionNotice({ tone: "error", title: "Reject failed", description: `${message} Retry if you still want to remove it from the ready queue.` });
       pushToast({ tone: "error", title: "Reject failed", description: message });
+    } finally {
+      setStatusSubmitting(null);
     }
   }
 
@@ -384,16 +391,16 @@ export function ClipReviewPage() {
             <button
               type="button"
               onClick={handleApprove}
-              disabled={saving || exporting}
+              disabled={saving || exporting || statusSubmitting !== null}
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
             >
               <Check className="h-4 w-4" />
-              Approve
+              {statusSubmitting === "approve" ? "Approving..." : "Approve"}
             </button>
             <button
               type="button"
               onClick={() => setRejectOpen(true)}
-              disabled={saving || exporting}
+              disabled={saving || exporting || statusSubmitting !== null}
               className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
             >
               <X className="h-4 w-4" />
