@@ -41,6 +41,9 @@ let backgroundHex = arguments.count > 8 ? arguments[8] : "050505"
 let backgroundAlpha = CGFloat(Double(arguments[9]) ?? 0.76)
 let foregroundHex = arguments.count > 10 ? arguments[10] : "FFFFFF"
 let cornerRadius = CGFloat(Double(arguments[11]) ?? 30)
+let style = arguments.count > 12 ? arguments[12] : "box"
+let eyebrow = arguments.count > 13 ? arguments[13] : ""
+let accentHex = arguments.count > 14 ? arguments[14] : foregroundHex
 
 let image = NSImage(size: NSSize(width: width, height: height))
 image.lockFocus()
@@ -65,21 +68,111 @@ shadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.4)
 shadow.shadowBlurRadius = 8
 shadow.shadowOffset = NSSize(width: 0, height: -2)
 
-let attributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.systemFont(ofSize: fontSize, weight: .bold),
-    .foregroundColor: color(from: foregroundHex, alpha: 1.0),
-    .paragraphStyle: paragraph,
-    .shadow: shadow,
-]
+func drawBorder(in rect: NSRect, radius: CGFloat) {
+    let border = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+    border.lineWidth = 1
+    NSColor(calibratedWhite: 1.0, alpha: 0.08).setStroke()
+    border.stroke()
+}
 
-let rect = NSRect(
-    x: horizontalPadding,
-    y: verticalPadding,
-    width: width - horizontalPadding * 2,
-    height: height - verticalPadding * 2
-)
+switch style {
+case "premium-title":
+    let backgroundRect = NSRect(x: 0, y: 0, width: width, height: height)
+    let card = NSBezierPath(roundedRect: backgroundRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    card.addClip()
+    let gradient = NSGradient(colors: [
+        color(from: backgroundHex, alpha: backgroundAlpha),
+        color(from: backgroundHex, alpha: max(backgroundAlpha * 0.68, 0.18)),
+    ])
+    gradient?.draw(in: backgroundRect, angle: 0)
+    drawBorder(in: backgroundRect.insetBy(dx: 0.5, dy: 0.5), radius: cornerRadius)
 
-(text as NSString).draw(in: rect, withAttributes: attributes)
+    let accentRect = NSRect(x: 28, y: height - 28, width: 78, height: 6)
+    let accent = NSBezierPath(roundedRect: accentRect, xRadius: 3, yRadius: 3)
+    color(from: accentHex, alpha: 0.98).setFill()
+    accent.fill()
+
+    if !eyebrow.isEmpty {
+        let eyebrowParagraph = NSMutableParagraphStyle()
+        eyebrowParagraph.alignment = .left
+        let eyebrowAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 19, weight: .semibold),
+            .foregroundColor: color(from: accentHex, alpha: 0.98),
+            .paragraphStyle: eyebrowParagraph,
+        ]
+        let eyebrowRect = NSRect(x: 28, y: height - 76, width: width - 56, height: 24)
+        (eyebrow as NSString).draw(in: eyebrowRect, withAttributes: eyebrowAttributes)
+    }
+
+    let titleParagraph = NSMutableParagraphStyle()
+    titleParagraph.alignment = .left
+    titleParagraph.lineBreakMode = .byWordWrapping
+    titleParagraph.lineSpacing = 2
+    let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .heavy),
+        .foregroundColor: color(from: foregroundHex, alpha: 1.0),
+        .paragraphStyle: titleParagraph,
+        .shadow: shadow,
+    ]
+    let titleRect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2 - (eyebrow.isEmpty ? 0 : 30)
+    )
+    (text as NSString).draw(in: titleRect, withAttributes: titleAttributes)
+
+case "premium-caption":
+    let backgroundRect = NSRect(x: 0, y: 0, width: width, height: height)
+    let card = NSBezierPath(roundedRect: backgroundRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    color(from: backgroundHex, alpha: backgroundAlpha).setFill()
+    card.fill()
+    drawBorder(in: backgroundRect.insetBy(dx: 0.5, dy: 0.5), radius: cornerRadius)
+
+    let accentRect = NSRect(x: 24, y: height - 18, width: width - 48, height: 2)
+    let accent = NSBezierPath(roundedRect: accentRect, xRadius: 1, yRadius: 1)
+    color(from: accentHex, alpha: 0.28).setFill()
+    accent.fill()
+
+    let captionParagraph = NSMutableParagraphStyle()
+    captionParagraph.alignment = .center
+    captionParagraph.lineBreakMode = .byWordWrapping
+    captionParagraph.lineSpacing = 3
+
+    let captionAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .semibold),
+        .foregroundColor: color(from: foregroundHex, alpha: 1.0),
+        .paragraphStyle: captionParagraph,
+        .shadow: shadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.28),
+        .strokeWidth: -1.5,
+    ]
+
+    let captionRect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding - 2,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2
+    )
+    (text as NSString).draw(in: captionRect, withAttributes: captionAttributes)
+
+default:
+    let attributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .bold),
+        .foregroundColor: color(from: foregroundHex, alpha: 1.0),
+        .paragraphStyle: paragraph,
+        .shadow: shadow,
+    ]
+
+    let rect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2
+    )
+
+    (text as NSString).draw(in: rect, withAttributes: attributes)
+}
 image.unlockFocus()
 
 guard
