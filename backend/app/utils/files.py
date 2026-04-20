@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from pathlib import Path
 
 
@@ -11,7 +12,13 @@ def safe_filename(filename: str) -> str:
 
 
 def slugify_text(value: str, max_length: int = 64) -> str:
-    normalized = re.sub(r"[^a-zA-Z0-9가-힣]+", "-", value.strip().lower()).strip("-")
+    transliterated = (
+        unicodedata.normalize("NFKD", value.strip())
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .lower()
+    )
+    normalized = re.sub(r"[^a-zA-Z0-9]+", "-", transliterated).strip("-")
     if not normalized:
         return "asset"
     return normalized[:max_length].strip("-") or "asset"

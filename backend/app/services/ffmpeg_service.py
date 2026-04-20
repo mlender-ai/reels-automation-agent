@@ -1,5 +1,7 @@
 import json
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -83,48 +85,56 @@ def export_vertical_clip(
 ) -> None:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    escaped_subtitle_path = _escape_subtitle_path(Path(subtitle_path))
-    vf = (
-        "scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920,"
-        "setsar=1,"
-        f"subtitles='{escaped_subtitle_path}':force_style='{preset_style}'"
-    )
-    command = [
-        settings.ffmpeg_binary,
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-ss",
-        f"{start_time:.3f}",
-        "-i",
-        str(Path(input_path).resolve()),
-        "-t",
-        f"{duration:.3f}",
-        "-map",
-        "0:v:0",
-        "-map",
-        "0:a?",
-        "-vf",
-        vf,
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "20",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-movflags",
-        "+faststart",
-        str(output.resolve()),
-    ]
-    _run_command(command, "Unable to export clip")
+    temporary_subtitle_copy: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix="raa-subtitles-", suffix=".srt", delete=False) as handle:
+            temporary_subtitle_copy = Path(handle.name)
+        shutil.copy2(Path(subtitle_path), temporary_subtitle_copy)
+        escaped_subtitle_path = _escape_subtitle_path(temporary_subtitle_copy)
+        vf = (
+            "scale=1080:1920:force_original_aspect_ratio=increase,"
+            "crop=1080:1920,"
+            "setsar=1,"
+            f"subtitles=filename='{escaped_subtitle_path}':force_style='{preset_style}'"
+        )
+        command = [
+            settings.ffmpeg_binary,
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-ss",
+            f"{start_time:.3f}",
+            "-i",
+            str(Path(input_path).resolve()),
+            "-t",
+            f"{duration:.3f}",
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a?",
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-crf",
+            "20",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-movflags",
+            "+faststart",
+            str(output.resolve()),
+        ]
+        _run_command(command, "Unable to export clip")
+    finally:
+        if temporary_subtitle_copy is not None:
+            temporary_subtitle_copy.unlink(missing_ok=True)
 
 
 def extract_thumbnail(video_path: str | Path, thumbnail_path: str | Path, capture_time: float = 0.75) -> None:
