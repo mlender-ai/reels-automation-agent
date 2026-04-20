@@ -21,12 +21,14 @@ from app.utils.files import safe_filename
 from app.utils.paths import ensure_app_directories, project_source_dir, project_transcripts_dir, to_relative_data_path
 
 SEED_TRANSCRIPT_PATH = BACKEND_DIR / "data" / "seed" / "demo_transcript.json"
+COMBAT_SPORTS_SEED_TRANSCRIPT_PATH = BACKEND_DIR / "data" / "seed" / "combat_sports_demo_transcript.json"
 
 
-def seed_demo_project(title: str, video_path: Path | None = None) -> int:
+def seed_demo_project(title: str, video_path: Path | None = None, profile: str = "general") -> int:
     ensure_app_directories()
     create_db_and_tables()
-    transcript_payload = json.loads(SEED_TRANSCRIPT_PATH.read_text(encoding="utf-8"))
+    transcript_path = COMBAT_SPORTS_SEED_TRANSCRIPT_PATH if profile == "combat_sports" else SEED_TRANSCRIPT_PATH
+    transcript_payload = json.loads(transcript_path.read_text(encoding="utf-8"))
 
     with SessionLocal() as db:
         project = Project(title=title, source_type="upload", status=ProjectStatus.transcribed.value)
@@ -79,9 +81,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Seed a demo project with transcript and heuristic clip candidates.")
     parser.add_argument("--title", default="Seed Demo Project", help="Project title for the seeded data")
     parser.add_argument("--video", type=Path, default=None, help="Optional path to a local video file to attach")
+    parser.add_argument("--profile", choices=["general", "combat_sports"], default="general", help="Seed transcript profile")
     args = parser.parse_args()
 
-    project_id = seed_demo_project(args.title, args.video)
+    project_id = seed_demo_project(args.title, args.video, args.profile)
     print(f"Seeded demo project #{project_id}")
 
 

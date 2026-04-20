@@ -33,6 +33,7 @@ This repository is the basecamp for two tracks that evolve together:
 - background workflow jobs with progress polling for transcript, clip generation, export, and publish queue
 - vertical `1080x1920` export with burned-in subtitles
 - mock publish queue for YouTube Shorts / Instagram Reels / TikTok adapter structure
+- combat-sports oriented heuristic scoring and metadata generation for MMA, boxing, kickboxing, and Muay Thai clips
 
 ## AI Org Features
 
@@ -214,7 +215,14 @@ Optional demo seed:
 ```bash
 cd backend
 python3 app/utils/seed_demo.py --title "Demo Reels Project"
+python3 app/utils/seed_demo.py --title "Combat Sports Demo" --profile combat_sports
+python3 app/utils/generate_combat_preview.py
 ```
+
+Combat sports strategy docs:
+
+- `docs/combat-sports-shortform-playbook.md`
+- `docs/combat-sports-preview.md`
 
 ## AI Organization
 

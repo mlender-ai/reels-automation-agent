@@ -17,6 +17,12 @@ from app.core.constants import (
 from app.models.clip_candidate import ClipCandidate
 from app.models.project import Project
 from app.models.transcript import Transcript
+from app.services.content_profile_service import (
+    COMBAT_SPORTS_ANALYSIS_TERMS,
+    COMBAT_SPORTS_FINISH_TERMS,
+    CONTENT_PROFILE_COMBAT_SPORTS,
+    detect_content_profile_from_text,
+)
 from app.services.metadata_generation_service import DEFAULT_METADATA_GENERATOR
 from app.services.transcription_service import load_transcript_segments
 from app.services.validation_service import ensure_transcript_segments_available, normalize_transcript_segments, validate_clip_window
@@ -111,10 +117,22 @@ def _hook_strength(window_segments: list[dict], start_time: float) -> float:
     return score
 
 
+def _combat_sports_signal(window_text: str, opening_text: str) -> float:
+    lowered = window_text.lower()
+    opening_lowered = opening_text.lower()
+    finish_score = sum(1 for term in COMBAT_SPORTS_FINISH_TERMS if term in lowered) * 3.2
+    analysis_score = sum(1 for term in COMBAT_SPORTS_ANALYSIS_TERMS if term in lowered) * 1.7
+    early_impact_score = sum(1 for term in COMBAT_SPORTS_FINISH_TERMS if term in opening_lowered) * 2.4
+    name_like_score = len(re.findall(r"\b[A-Z][a-z]{2,}\b", window_text)) * 0.5
+    return finish_score + analysis_score + early_impact_score + name_like_score
+
+
 def score_candidate_window(
     segments: list[dict],
     start_index: int,
     end_index: int,
+    *,
+    content_profile: str = "general",
 ) -> float:
     window_segments = segments[start_index : end_index + 1]
     duration = window_segments[-1]["end"] - window_segments[0]["start"]
@@ -127,8 +145,11 @@ def score_candidate_window(
     next_segment = segments[end_index + 1] if end_index + 1 < len(segments) else None
     clean_start = _has_clean_start(previous_segment, window_segments[0])
     clean_end = _has_clean_end(window_segments[-1], next_segment)
+    opening_text = " ".join(segment["text"] for segment in window_segments if segment["start"] - window_segments[0]["start"] <= 3.0)
 
     duration_score = max(0.0, 25 - abs(32 - duration) * 0.9)
+    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS:
+        duration_score = max(0.0, 28 - abs(21 - duration) * 1.1)
     density_score = min(18.0, density * 2.2)
     hook_score = _hook_strength(window_segments, window_segments[0]["start"])
     emotion_score = _contains_keywords(text, EMOTION_KEYWORDS["en"] + EMOTION_KEYWORDS["ko"]) * 2.5
@@ -140,16 +161,26 @@ def score_candidate_window(
     filler_penalty = 5 if _starts_with_filler(window_segments[0]["text"]) else 0
     mid_sentence_penalty = 4 if _looks_like_mid_sentence(window_segments[0]["text"]) else 0
     density_penalty = 10 if density < 2.2 else 0
+    combat_signal = _combat_sports_signal(text, opening_text) if content_profile == CONTENT_PROFILE_COMBAT_SPORTS else 0.0
+    combat_penalty = 0.0
+    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration > 34:
+        combat_penalty += (duration - 34) * 1.5
 
-    score = duration_score + density_score + hook_score + emotion_score + comparison_score + list_score
-    score -= gap_penalty + start_penalty + end_penalty + filler_penalty + mid_sentence_penalty + density_penalty
+    score = duration_score + density_score + hook_score + emotion_score + comparison_score + list_score + combat_signal
+    score -= gap_penalty + start_penalty + end_penalty + filler_penalty + mid_sentence_penalty + density_penalty + combat_penalty
     return round(max(score, 0.0), 3)
 
 
-def _iter_candidate_windows(segments: list[dict]) -> list[CandidateWindow]:
+def _iter_candidate_windows(segments: list[dict], content_profile: str) -> list[CandidateWindow]:
     windows: list[CandidateWindow] = []
     total_runtime = segments[-1]["end"] - segments[0]["start"]
     preferred_targets = [20, 24, 28, 32, 36, 40, 45]
+    minimum_duration = 20
+    maximum_duration = 45
+    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS:
+        preferred_targets = [12, 15, 18, 21, 24, 28, 32]
+        minimum_duration = 12
+        maximum_duration = 38
     fallback_targets = [16, 18] if total_runtime <= 24 else []
     for start_index, segment in enumerate(segments):
         start_time = float(segment["start"])
@@ -167,14 +198,14 @@ def _iter_candidate_windows(segments: list[dict]) -> list[CandidateWindow]:
             if not window_segments:
                 continue
             duration = window_segments[-1]["end"] - start_time
-            if 20 <= duration <= 45 or (duration >= 15 and segments[-1]["end"] <= 22):
+            if minimum_duration <= duration <= maximum_duration or (duration >= 15 and segments[-1]["end"] <= 22):
                 windows.append(
                     CandidateWindow(
                         start_time=round(start_time, 3),
                         end_time=round(window_segments[-1]["end"], 3),
                         duration=round(duration, 3),
                         segments=window_segments,
-                        score=score_candidate_window(segments, start_index, end_index),
+                        score=score_candidate_window(segments, start_index, end_index, content_profile=content_profile),
                     )
                 )
     return windows
@@ -217,10 +248,12 @@ def _build_candidates(windows: list[CandidateWindow]) -> list[CandidateWindow]:
     return selected[:5]
 
 
-def generate_ranked_candidate_windows(raw_segments: list[dict]) -> list[CandidateWindow]:
+def generate_ranked_candidate_windows(raw_segments: list[dict], content_profile: str | None = None) -> list[CandidateWindow]:
     segments = normalize_transcript_segments(raw_segments)
     ensure_transcript_segments_available(segments)
-    windows = _iter_candidate_windows(segments)
+    transcript_text = " ".join(segment["text"] for segment in segments)
+    resolved_profile = content_profile or detect_content_profile_from_text(transcript_text)
+    windows = _iter_candidate_windows(segments, resolved_profile)
     if not windows:
         raise HTTPException(status_code=422, detail="Transcript does not contain enough speech to produce clip candidates")
 

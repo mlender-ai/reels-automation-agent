@@ -11,6 +11,8 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.services.clip_scoring_service import generate_ranked_candidate_windows  # noqa: E402
+from app.services.content_profile_service import CONTENT_PROFILE_COMBAT_SPORTS, detect_content_profile_from_text  # noqa: E402
+from app.services.metadata_generation_service import DEFAULT_METADATA_GENERATOR  # noqa: E402
 from app.services.validation_service import ensure_transcript_segments_available, normalize_transcript_segments  # noqa: E402
 
 
@@ -67,3 +69,19 @@ class ClipGenerationWindowTests(unittest.TestCase):
             generate_ranked_candidate_windows(low_signal)
         self.assertEqual(context.exception.status_code, 422)
         self.assertIn("usable speech", str(context.exception.detail))
+
+    def test_combat_sports_profile_detects_and_generates_domain_specific_metadata(self) -> None:
+        segments = [
+            {"id": 0, "start": 0.0, "end": 4.0, "text": "The feint opens the angle and the left hook drops the fighter immediately."},
+            {"id": 1, "start": 4.2, "end": 8.3, "text": "That knockout only happens because the guard comes back late after the jab."},
+            {"id": 2, "start": 8.6, "end": 13.8, "text": "If you break down the exchange, the timing and distance management decide everything."},
+            {"id": 3, "start": 14.0, "end": 18.7, "text": "The referee waves it off fast because the counter lands clean again at the fence."},
+        ]
+        profile = detect_content_profile_from_text(" ".join(segment["text"] for segment in segments))
+        self.assertEqual(profile, CONTENT_PROFILE_COMBAT_SPORTS)
+
+        metadata = DEFAULT_METADATA_GENERATOR.generate(segments, " ".join(segment["text"] for segment in segments))
+        self.assertIn("#mma", metadata.suggested_hashtags)
+        self.assertTrue(
+            any(fragment in metadata.suggested_title.lower() for fragment in ["fight", "exchange", "caught", "finish"])
+        )
