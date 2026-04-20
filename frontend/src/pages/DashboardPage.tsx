@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { ClipCard } from "../components/ClipCard";
 import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
 import { ExportListTable } from "../components/ExportListTable";
 import { LoadingState } from "../components/LoadingState";
 import { ProjectSummaryCard } from "../components/ProjectSummaryCard";
@@ -16,21 +17,26 @@ export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const { pushToast } = useToast();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        const [summaryResponse, systemResponse] = await Promise.all([api.getDashboardSummary(), api.getSystemStatus()]);
-        setSummary(summaryResponse);
-        setSystemStatus(systemResponse);
-      } catch (error) {
-        pushToast({ tone: "error", title: "Dashboard failed to load", description: (error as Error).message });
-      } finally {
-        setLoading(false);
-      }
+  async function load() {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      const [summaryResponse, systemResponse] = await Promise.all([api.getDashboardSummary(), api.getSystemStatus()]);
+      setSummary(summaryResponse);
+      setSystemStatus(systemResponse);
+    } catch (error) {
+      const message = (error as Error).message;
+      setErrorMessage(message);
+      pushToast({ tone: "error", title: "Dashboard failed to load", description: message });
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     void load();
   }, [pushToast]);
 
@@ -40,9 +46,11 @@ export function DashboardPage() {
 
   if (!summary) {
     return (
-      <EmptyState
+      <ErrorState
         title="Dashboard unavailable"
-        description="The API did not return dashboard data. Make sure the backend server is running and reachable."
+        description={errorMessage || "The API did not return dashboard data. Make sure the backend server is running and reachable."}
+        actionLabel="Retry dashboard"
+        onAction={() => void load()}
       />
     );
   }

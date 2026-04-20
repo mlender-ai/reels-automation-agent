@@ -17,6 +17,29 @@ except ImportError:  # pragma: no cover - dependency validation happens at runti
     WhisperModel = None
 
 
+def _humanize_transcription_error(exc: Exception) -> tuple[int, str]:
+    raw = " ".join(part for part in [str(exc), getattr(exc, "stderr", ""), getattr(exc, "stdout", "")] if part).lower()
+    if "moov atom not found" in raw or "invalid data found" in raw or "error opening input" in raw:
+        return (
+            400,
+            "Transcription failed because the uploaded video looks unsupported or corrupted. Re-export the source locally and try again.",
+        )
+    if "cuda" in raw or "cublas" in raw or "device" in raw:
+        return (
+            500,
+            "Transcription could not start on the configured Whisper device. Switch to CPU or fix the local GPU setup, then retry.",
+        )
+    if "ffmpeg" in raw:
+        return (
+            500,
+            "Transcription failed while decoding the local video's audio track. Confirm FFmpeg is installed and the source has readable audio.",
+        )
+    return (
+        500,
+        "Transcription failed. Check the source video's audio track and your faster-whisper setup, then try again.",
+    )
+
+
 def _get_whisper_model() -> "WhisperModel":
     if WhisperModel is None:
         raise HTTPException(
@@ -121,7 +144,5 @@ def transcribe_project(db: Session, project: Project, source_video: SourceVideo)
         project.status = ProjectStatus.failed.value
         db.add(project)
         db.commit()
-        raise HTTPException(
-            status_code=500,
-            detail="Transcription failed. Check the source video's audio track and your faster-whisper setup, then try again.",
-        ) from exc
+        status_code, detail = _humanize_transcription_error(exc)
+        raise HTTPException(status_code=status_code, detail=detail) from exc

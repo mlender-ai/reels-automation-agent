@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api";
 import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { PublishPlatformChip } from "../components/PublishPlatformChip";
 import { StatusBadge } from "../components/StatusBadge";
@@ -17,17 +18,21 @@ export function PublishQueuePage() {
   const [platform, setPlatform] = useState("youtube");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
   const { pushToast } = useToast();
 
   async function load() {
     try {
+      setPageError("");
       const [queueResponse, clipsResponse] = await Promise.all([api.listPublishJobs(), api.listClips(["approved", "exported"])]);
       const exportedClips = clipsResponse.filter((clip) => Boolean(clip.latest_export?.output_url));
       setQueue(queueResponse);
       setEligibleClips(exportedClips);
       setSelectedClipId((current) => current ?? exportedClips[0]?.id ?? null);
     } catch (error) {
-      pushToast({ tone: "error", title: "Publish queue failed to load", description: (error as Error).message });
+      const message = (error as Error).message;
+      setPageError(message);
+      pushToast({ tone: "error", title: "Publish queue failed to load", description: message });
     } finally {
       setLoading(false);
     }
@@ -61,7 +66,12 @@ export function PublishQueuePage() {
   }
 
   if (loading) return <LoadingState label="Loading publish queue..." />;
-  if (!queue) return <EmptyState title="Publish queue unavailable" description="The queue endpoint did not return data." />;
+  if (!queue) {
+    if (pageError) {
+      return <ErrorState title="Publish queue unavailable" description={pageError} actionLabel="Retry queue" onAction={() => void load()} />;
+    }
+    return <EmptyState title="Publish queue unavailable" description="The queue endpoint did not return data." />;
+  }
 
   return (
     <div className="space-y-8">

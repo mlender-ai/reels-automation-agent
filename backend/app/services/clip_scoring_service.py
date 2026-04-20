@@ -19,6 +19,7 @@ from app.models.project import Project
 from app.models.transcript import Transcript
 from app.services.metadata_generation_service import DEFAULT_METADATA_GENERATOR
 from app.services.transcription_service import load_transcript_segments
+from app.services.validation_service import ensure_transcript_segments_available, normalize_transcript_segments, validate_clip_window
 
 
 @dataclass
@@ -57,6 +58,27 @@ def _max_gap(window_segments: list[dict]) -> float:
 def _starts_with_filler(text: str) -> bool:
     lowered = text.strip().lower()
     return any(lowered.startswith(prefix.lower()) for prefixes in FILLER_PREFIXES.values() for prefix in prefixes)
+
+
+def _looks_like_mid_sentence(text: str) -> bool:
+    stripped = text.strip().lower()
+    if not stripped:
+        return True
+    return any(
+        stripped.startswith(prefix)
+        for prefix in (
+            "and ",
+            "but ",
+            "so ",
+            "because ",
+            "then ",
+            "그래서",
+            "근데",
+            "그리고",
+            "하지만",
+            "왜냐하면",
+        )
+    )
 
 
 def _has_clean_start(previous_segment: dict | None, current_segment: dict) -> bool:
@@ -116,17 +138,19 @@ def score_candidate_window(
     start_penalty = 7 if not clean_start else 0
     end_penalty = 6 if not clean_end else 0
     filler_penalty = 5 if _starts_with_filler(window_segments[0]["text"]) else 0
+    mid_sentence_penalty = 4 if _looks_like_mid_sentence(window_segments[0]["text"]) else 0
     density_penalty = 10 if density < 2.2 else 0
 
     score = duration_score + density_score + hook_score + emotion_score + comparison_score + list_score
-    score -= gap_penalty + start_penalty + end_penalty + filler_penalty + density_penalty
+    score -= gap_penalty + start_penalty + end_penalty + filler_penalty + mid_sentence_penalty + density_penalty
     return round(max(score, 0.0), 3)
 
 
 def _iter_candidate_windows(segments: list[dict]) -> list[CandidateWindow]:
     windows: list[CandidateWindow] = []
-    preferred_targets = [22, 28, 34, 40, 45]
-    fallback_targets = [16, 18]
+    total_runtime = segments[-1]["end"] - segments[0]["start"]
+    preferred_targets = [20, 24, 28, 32, 36, 40, 45]
+    fallback_targets = [16, 18] if total_runtime <= 24 else []
     for start_index, segment in enumerate(segments):
         start_time = float(segment["start"])
         for target in preferred_targets + fallback_targets:
@@ -164,9 +188,14 @@ def _iou(candidate: CandidateWindow, accepted: CandidateWindow) -> float:
 
 def _deduplicate(windows: list[CandidateWindow]) -> list[CandidateWindow]:
     selected: list[CandidateWindow] = []
+    seen_bounds: set[tuple[float, float]] = set()
     for candidate in sorted(windows, key=lambda item: item.score, reverse=True):
+        bounds = (round(candidate.start_time, 1), round(candidate.end_time, 1))
+        if bounds in seen_bounds:
+            continue
         if all(_iou(candidate, accepted) < 0.58 for accepted in selected):
             selected.append(candidate)
+            seen_bounds.add(bounds)
         if len(selected) == 5:
             break
     return selected
@@ -188,11 +217,9 @@ def _build_candidates(windows: list[CandidateWindow]) -> list[CandidateWindow]:
     return selected[:5]
 
 
-def generate_clip_candidates(db: Session, project: Project, transcript: Transcript) -> list[ClipCandidate]:
-    segments = load_transcript_segments(transcript)
-    if not segments:
-        raise HTTPException(status_code=422, detail="Transcript segments are empty")
-
+def generate_ranked_candidate_windows(raw_segments: list[dict]) -> list[CandidateWindow]:
+    segments = normalize_transcript_segments(raw_segments)
+    ensure_transcript_segments_available(segments)
     windows = _iter_candidate_windows(segments)
     if not windows:
         raise HTTPException(status_code=422, detail="Transcript does not contain enough speech to produce clip candidates")
@@ -200,6 +227,31 @@ def generate_clip_candidates(db: Session, project: Project, transcript: Transcri
     top_windows = _build_candidates(windows)
     if not top_windows:
         raise HTTPException(status_code=422, detail="Unable to score useful clip candidates from the transcript")
+
+    max_source_duration = max(segment["end"] for segment in segments)
+    validated: list[CandidateWindow] = []
+    seen_bounds: set[tuple[float, float]] = set()
+    for window in top_windows:
+        try:
+            window.duration = validate_clip_window(window.start_time, window.end_time, max_source_duration=max_source_duration)
+        except HTTPException:
+            continue
+        bounds = (round(window.start_time, 1), round(window.end_time, 1))
+        if bounds in seen_bounds:
+            continue
+        seen_bounds.add(bounds)
+        validated.append(window)
+
+    if not validated:
+        raise HTTPException(
+            status_code=422,
+            detail="Unable to produce valid clip windows from the current transcript. Try retranscribing or upload a clearer source video.",
+        )
+    return validated
+
+
+def generate_clip_candidates(db: Session, project: Project, transcript: Transcript) -> list[ClipCandidate]:
+    top_windows = generate_ranked_candidate_windows(load_transcript_segments(transcript))
 
     existing_clips = db.scalars(select(ClipCandidate).where(ClipCandidate.project_id == project.id)).all()
     for clip in existing_clips:

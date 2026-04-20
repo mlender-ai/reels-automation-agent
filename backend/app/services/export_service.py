@@ -11,10 +11,18 @@ from app.models.project import Project
 from app.models.transcript import Transcript
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.subtitle_service import build_subtitle_style, write_clip_srt
+from app.services.validation_service import validate_clip_window
 from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
 
 
-def export_clip(db: Session, clip: ClipCandidate, project: Project, transcript: Transcript, source_path: str) -> Export:
+def export_clip(
+    db: Session,
+    clip: ClipCandidate,
+    project: Project,
+    transcript: Transcript,
+    source_path: str,
+    source_duration_seconds: float | None = None,
+) -> Export:
     if clip.status not in {ClipStatus.approved.value, ClipStatus.exported.value}:
         raise HTTPException(status_code=400, detail="Clip must be approved before export")
 
@@ -33,6 +41,7 @@ def export_clip(db: Session, clip: ClipCandidate, project: Project, transcript: 
     db.refresh(export_record)
 
     try:
+        clip.duration = validate_clip_window(clip.start_time, clip.end_time, max_source_duration=source_duration_seconds)
         subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
         export_vertical_clip(
             input_path=resolve_data_path(source_path),
@@ -64,7 +73,7 @@ def export_clip(db: Session, clip: ClipCandidate, project: Project, transcript: 
         db.commit()
         for path in [output_file, thumbnail_file]:
             Path(path).unlink(missing_ok=True)
-        raise HTTPException(status_code=500, detail=f"Export failed: {exc.detail}") from exc
+        raise HTTPException(status_code=exc.status_code, detail=str(exc.detail)) from exc
     except Exception as exc:
         export_record.status = ExportStatus.failed.value
         clip.status = ClipStatus.approved.value

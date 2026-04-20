@@ -65,9 +65,10 @@ def update_clip_endpoint(clip_id: int, payload: ClipCandidateUpdate, db: Session
     update_data = payload.model_dump(exclude_unset=True)
     next_start = update_data.get("start_time", clip.start_time)
     next_end = update_data.get("end_time", clip.end_time)
+    source_duration = clip.project.source_videos[0].duration_seconds if clip.project and clip.project.source_videos else None
     clip.start_time = next_start
     clip.end_time = next_end
-    clip.duration = validate_clip_window(clip.start_time, clip.end_time)
+    clip.duration = validate_clip_window(clip.start_time, clip.end_time, max_source_duration=source_duration)
     for field in ["suggested_title", "suggested_description", "suggested_hashtags", "subtitle_preset"]:
         if field in update_data:
             setattr(clip, field, update_data[field])
@@ -105,7 +106,7 @@ def export_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
         raise HTTPException(status_code=400, detail="Transcript is required before export")
     if not source_video:
         raise HTTPException(status_code=400, detail="Source video is required before export")
-    export_record = export_clip(db, clip, project, transcript, source_video.stored_path)
+    export_record = export_clip(db, clip, project, transcript, source_video.stored_path, source_duration_seconds=source_video.duration_seconds)
     refreshed_export = db.scalar(
         select(Export)
         .where(Export.id == export_record.id)

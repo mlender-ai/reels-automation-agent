@@ -7,15 +7,29 @@ from fastapi import HTTPException
 from app.core.config import settings
 
 
+def _humanize_command_error(detail: str, error_prefix: str) -> str:
+    lowered = detail.lower()
+    if "no space left on device" in lowered:
+        return f"{error_prefix}: The local disk ran out of space while processing media."
+    if "moov atom not found" in lowered or "invalid data found when processing input" in lowered:
+        return f"{error_prefix}: FFmpeg could not read the local source video. Re-export or replace the file and try again."
+    if "no such file or directory" in lowered and "subtitles" in lowered:
+        return f"{error_prefix}: The generated subtitle file could not be found during export."
+    if "permission denied" in lowered:
+        return f"{error_prefix}: The app does not have permission to read or write one of the media files."
+    trimmed = detail.splitlines()[:4]
+    return f"{error_prefix}: {' '.join(trimmed)}"
+
+
 def _run_command(command: list[str], error_prefix: str) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(command, check=True, capture_output=True, text=True)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=500, detail=f"{error_prefix}: binary not found") from exc
+        binary = Path(command[0]).name if command else "binary"
+        raise HTTPException(status_code=500, detail=f"{error_prefix}: Required binary `{binary}` was not found on PATH.") from exc
     except subprocess.CalledProcessError as exc:
         detail = exc.stderr.strip() or exc.stdout.strip() or "Unknown FFmpeg error"
-        trimmed = detail.splitlines()[:4]
-        raise HTTPException(status_code=500, detail=f"{error_prefix}: {' '.join(trimmed)}") from exc
+        raise HTTPException(status_code=500, detail=_humanize_command_error(detail, error_prefix)) from exc
 
 
 def _parse_fps(raw_fps: str | None) -> float | None:

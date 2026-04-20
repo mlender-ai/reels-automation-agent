@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "../api";
 import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
 import { ExportListTable } from "../components/ExportListTable";
 import { LoadingState } from "../components/LoadingState";
 import { StatCard } from "../components/StatCard";
@@ -11,23 +12,31 @@ import type { ExportRecord } from "../types";
 export function ExportsPage() {
   const [items, setItems] = useState<ExportRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const { pushToast } = useToast();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        setItems(await api.listExports());
-      } catch (error) {
-        pushToast({ tone: "error", title: "Exports failed to load", description: (error as Error).message });
-      } finally {
-        setLoading(false);
-      }
+  async function load() {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setItems(await api.listExports());
+    } catch (error) {
+      const message = (error as Error).message;
+      setErrorMessage(message);
+      pushToast({ tone: "error", title: "Exports failed to load", description: message });
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     void load();
   }, [pushToast]);
 
   if (loading) return <LoadingState label="Loading exports..." />;
+  if (errorMessage && !items.length) {
+    return <ErrorState title="Exports unavailable" description={errorMessage} actionLabel="Retry exports" onAction={() => void load()} />;
+  }
   if (!items.length) {
     return <EmptyState title="No exports yet" description="Approve a clip and run export to create the first vertical MP4 asset." />;
   }

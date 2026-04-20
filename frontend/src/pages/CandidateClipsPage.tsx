@@ -5,6 +5,7 @@ import { api } from "../api";
 import { ClipCard } from "../components/ClipCard";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { useToast } from "../hooks/useToast";
 import type { ClipCandidate, Project } from "../types";
@@ -16,17 +17,21 @@ export function CandidateClipsPage() {
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [busyClipId, setBusyClipId] = useState<number | null>(null);
+  const [pageError, setPageError] = useState("");
   const { pushToast } = useToast();
 
   async function load() {
     if (!projectId) return;
     try {
       setLoading(true);
+      setPageError("");
       const [projectResponse, clipsResponse] = await Promise.all([api.getProject(Number(projectId)), api.listProjectClips(Number(projectId))]);
       setProject(projectResponse);
       setClips(clipsResponse);
     } catch (error) {
-      pushToast({ tone: "error", title: "Candidate clips failed to load", description: (error as Error).message });
+      const message = (error as Error).message;
+      setPageError(message);
+      pushToast({ tone: "error", title: "Candidate clips failed to load", description: message });
     } finally {
       setLoading(false);
     }
@@ -65,7 +70,12 @@ export function CandidateClipsPage() {
   }
 
   if (loading) return <LoadingState label="Loading candidate clips..." />;
-  if (!project) return <EmptyState title="Project missing" description="This project could not be found." />;
+  if (!project) {
+    if (pageError) {
+      return <ErrorState title="Candidate queue unavailable" description={pageError} actionLabel="Retry queue" onAction={() => void load()} />;
+    }
+    return <EmptyState title="Project missing" description="This project could not be found." />;
+  }
 
   return (
     <div className="space-y-8">

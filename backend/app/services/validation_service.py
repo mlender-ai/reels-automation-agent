@@ -29,7 +29,7 @@ def validate_video_upload(filename: str, content_type: str | None, size_bytes: i
         raise HTTPException(status_code=400, detail=f"Uploaded video exceeds the {max_size_mb} MB size limit")
 
 
-def validate_clip_window(start_time: float, end_time: float) -> float:
+def validate_clip_window(start_time: float, end_time: float, max_source_duration: float | None = None) -> float:
     if end_time <= start_time:
         raise HTTPException(status_code=422, detail="Clip end_time must be greater than start_time")
 
@@ -44,4 +44,54 @@ def validate_clip_window(start_time: float, end_time: float) -> float:
             status_code=422,
             detail=f"Clip duration must be {MAX_CLIP_DURATION_SECONDS:.0f} seconds or less",
         )
+    if max_source_duration is not None and end_time > max_source_duration + 0.25:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Clip end_time must stay within the source video duration ({max_source_duration:.1f}s)",
+        )
     return duration
+
+
+def normalize_transcript_segments(raw_segments: list[dict]) -> list[dict]:
+    normalized: list[dict] = []
+    seen_signatures: set[tuple[float, float, str]] = set()
+
+    for index, segment in enumerate(raw_segments):
+        try:
+            start = round(float(segment.get("start", 0.0)), 3)
+            end = round(float(segment.get("end", 0.0)), 3)
+        except (TypeError, ValueError):
+            continue
+
+        text = " ".join(str(segment.get("text", "")).split())
+        if not text or end <= start:
+            continue
+
+        signature = (round(start, 2), round(end, 2), text.lower())
+        if signature in seen_signatures:
+            continue
+
+        normalized.append(
+            {
+                "id": int(segment.get("id", index)),
+                "start": start,
+                "end": end,
+                "text": text,
+            }
+        )
+        seen_signatures.add(signature)
+
+    normalized.sort(key=lambda item: (item["start"], item["end"]))
+    return normalized
+
+
+def ensure_transcript_segments_available(segments: list[dict]) -> None:
+    if not segments:
+        raise HTTPException(status_code=422, detail="Transcript segments are empty or invalid")
+
+    speech_duration = round(sum(segment["end"] - segment["start"] for segment in segments), 3)
+    if len(segments) < 2 or speech_duration < MIN_CLIP_DURATION_SECONDS:
+        raise HTTPException(
+            status_code=422,
+            detail="Transcript does not contain enough usable speech to produce clip candidates",
+        )

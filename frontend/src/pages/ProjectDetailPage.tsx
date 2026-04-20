@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/useToast";
@@ -16,6 +17,8 @@ export function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<"transcribe" | "clips" | null>(null);
+  const [pageError, setPageError] = useState("");
+  const [actionNotice, setActionNotice] = useState<{ tone: "error" | "info"; title: string; description: string } | null>(null);
   const navigate = useNavigate();
   const { pushToast } = useToast();
 
@@ -23,9 +26,12 @@ export function ProjectDetailPage() {
     if (!projectId) return;
     try {
       setLoading(true);
+      setPageError("");
       setProject(await api.getProject(Number(projectId)));
     } catch (error) {
-      pushToast({ tone: "error", title: "Project failed to load", description: (error as Error).message });
+      const message = (error as Error).message;
+      setPageError(message);
+      pushToast({ tone: "error", title: "Project failed to load", description: message });
     } finally {
       setLoading(false);
     }
@@ -39,11 +45,18 @@ export function ProjectDetailPage() {
     if (!projectId) return;
     try {
       setBusyAction("transcribe");
+      setActionNotice(null);
       await api.transcribeProject(Number(projectId));
       await loadProject();
       pushToast({ tone: "success", title: "Transcript ready", description: "You can now generate ranked shortform clip candidates." });
     } catch (error) {
-      pushToast({ tone: "error", title: "Transcription failed", description: (error as Error).message });
+      const message = (error as Error).message;
+      setActionNotice({
+        tone: "error",
+        title: "Transcription failed",
+        description: `${message} Retry after checking the source video's audio track or your local faster-whisper setup.`,
+      });
+      pushToast({ tone: "error", title: "Transcription failed", description: message });
     } finally {
       setBusyAction(null);
     }
@@ -53,11 +66,18 @@ export function ProjectDetailPage() {
     if (!projectId) return;
     try {
       setBusyAction("clips");
+      setActionNotice(null);
       await api.generateProjectClips(Number(projectId));
       pushToast({ tone: "success", title: "Clip candidates created", description: "Top moments are ready for review." });
       navigate(`/projects/${projectId}/clips`);
     } catch (error) {
-      pushToast({ tone: "error", title: "Clip generation failed", description: (error as Error).message });
+      const message = (error as Error).message;
+      setActionNotice({
+        tone: "error",
+        title: "Clip generation failed",
+        description: `${message} Review the transcript content, then retry or regenerate the transcript from a clearer source video.`,
+      });
+      pushToast({ tone: "error", title: "Clip generation failed", description: message });
     } finally {
       setBusyAction(null);
     }
@@ -65,6 +85,9 @@ export function ProjectDetailPage() {
 
   if (loading) return <LoadingState label="Loading project..." />;
   if (!project) {
+    if (pageError) {
+      return <ErrorState title="Project unavailable" description={pageError} actionLabel="Retry project" onAction={() => void loadProject()} />;
+    }
     return <EmptyState title="Project not found" description="This project could not be loaded from the local API." />;
   }
 
@@ -106,6 +129,16 @@ export function ProjectDetailPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">Next action</p>
             <p className="mt-2 text-sm font-medium text-cyan-100">{nextActionLabel(project.next_action)}</p>
           </div>
+
+          {project.status === "failed" || actionNotice ? (
+            <div className="mt-6 rounded-3xl border border-rose-400/20 bg-rose-400/10 px-4 py-4 text-rose-100">
+              <p className="text-sm font-semibold">{actionNotice?.title ?? "Last automation step needs attention"}</p>
+              <p className="mt-2 text-sm leading-6 text-white/85">
+                {actionNotice?.description ??
+                  "The last project step failed. Check your local source file and runtime tools, then retry the next action from this screen."}
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-8 flex flex-wrap gap-3">
             <button
