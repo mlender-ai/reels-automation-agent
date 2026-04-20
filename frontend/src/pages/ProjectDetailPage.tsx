@@ -27,6 +27,7 @@ export function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewMode, setPreviewMode] = useState<"source" | "export">("source");
   const [submittingAction, setSubmittingAction] = useState<"transcribe" | "generate_clips" | null>(null);
   const [pageError, setPageError] = useState("");
   const [actionNotice, setActionNotice] = useState<{ tone: "error" | "info" | "success"; title: string; description: string } | null>(null);
@@ -125,6 +126,11 @@ export function ProjectDetailPage() {
     }
   }, [jobs, navigateOnClipReady, projectId, pushToast, relevantJobs, navigate]);
 
+  useEffect(() => {
+    if (!project) return;
+    setPreviewMode(project.latest_export?.output_url ? "export" : "source");
+  }, [project]);
+
   async function handleTranscribe() {
     if (!projectId) return;
     try {
@@ -193,6 +199,22 @@ export function ProjectDetailPage() {
   const nextActionText = activeProjectJob
     ? `${workflowJobTypeLabel(activeProjectJob.job_type)} 진행 중`
     : nextActionLabel(project.next_action);
+  const hasLatestExport = Boolean(project.latest_export?.output_url);
+  const previewUrl =
+    previewMode === "export"
+      ? resolveMediaUrl(project.latest_export?.output_url)
+      : resolveMediaUrl(project.source_video?.file_url);
+  const previewPoster =
+    previewMode === "export"
+      ? resolveMediaUrl(project.latest_export?.thumbnail_url)
+      : "";
+  const previewTitle = previewMode === "export" ? "실제 결과물 미리보기" : "원본 영상 미리보기";
+  const previewDescription =
+    previewMode === "export"
+      ? "실제로 생성된 9:16 숏폼 결과물입니다. 제목 오버레이와 캡션이 반영된 최신 export를 바로 확인할 수 있습니다."
+      : "업로드된 원본 소스입니다. 클립 후보, export, publish는 이 파일을 기준으로 진행됩니다.";
+  const previewAspectClass = previewMode === "export" ? "aspect-[9/16]" : "aspect-video";
+  const previewDurationSeconds = project.source_video?.duration_seconds ?? null;
 
   return (
     <div className="space-y-8">
@@ -303,37 +325,93 @@ export function ProjectDetailPage() {
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-4 shadow-panel">
-          {project.source_video?.file_url ? (
+          {project.source_video?.file_url || project.latest_export?.output_url ? (
             <div>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.25em] text-slate-500">미리보기</p>
+                  <h3 className="mt-2 font-display text-xl font-semibold text-white">{previewTitle}</h3>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">{previewDescription}</p>
+                </div>
+                {hasLatestExport ? (
+                  <div className="inline-flex rounded-2xl border border-white/10 bg-black/20 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode("export")}
+                      className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                        previewMode === "export" ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/5"
+                      }`}
+                    >
+                      결과물
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode("source")}
+                      className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                        previewMode === "source" ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/5"
+                      }`}
+                    >
+                      원본
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black/30">
-                <video controls src={resolveMediaUrl(project.source_video.file_url)} className="aspect-video w-full bg-black object-contain" />
+                <video
+                  controls
+                  poster={previewPoster || undefined}
+                  src={previewUrl}
+                  className={`${previewAspectClass} w-full bg-black ${previewMode === "export" ? "object-cover" : "object-contain"}`}
+                />
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
                 <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">길이</p>
-                  <p className="mt-2 font-semibold text-white">{formatDuration(project.source_video.duration_seconds)}</p>
+                  <p className="text-xs text-slate-500">{previewMode === "export" ? "결과 길이" : "원본 길이"}</p>
+                  <p className="mt-2 font-semibold text-white">{formatDuration(previewDurationSeconds)}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-3">
                   <p className="text-xs text-slate-500">해상도</p>
                   <p className="mt-2 font-semibold text-white">
-                    {project.source_video.width ?? "--"} x {project.source_video.height ?? "--"}
+                    {previewMode === "export"
+                      ? "1080 x 1920"
+                      : `${project.source_video?.width ?? "--"} x ${project.source_video?.height ?? "--"}`}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">FPS</p>
-                  <p className="mt-2 font-semibold text-white">{project.source_video.fps ?? "--"}</p>
+                  <p className="text-xs text-slate-500">{previewMode === "export" ? "표시 요소" : "FPS"}</p>
+                  <p className="mt-2 font-semibold text-white">
+                    {previewMode === "export" ? (project.latest_export?.thumbnail_url ? "타이틀 + 캡션" : "세로형 변환") : project.source_video?.fps ?? "--"}
+                  </p>
                 </div>
               </div>
-              {project.latest_export?.output_url ? (
-                <a
-                  href={resolveMediaUrl(project.latest_export.output_url)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15"
+              <div className="mt-4 flex flex-wrap gap-3">
+                {project.latest_export?.output_url ? (
+                  <a
+                    href={resolveMediaUrl(project.latest_export.output_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                  >
+                    최신 결과물 열기
+                  </a>
+                ) : null}
+                {project.latest_export?.thumbnail_url ? (
+                  <a
+                    href={resolveMediaUrl(project.latest_export.thumbnail_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                  >
+                    썸네일 보기
+                  </a>
+                ) : null}
+                <Link
+                  to="/exports"
+                  className="inline-flex rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
                 >
-                  최신 결과물 열기
-                </a>
-              ) : null}
+                  내보내기 화면으로 이동
+                </Link>
+              </div>
             </div>
           ) : (
             <EmptyState
