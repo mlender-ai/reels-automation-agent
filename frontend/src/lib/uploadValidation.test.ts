@@ -16,4 +16,8 @@ describe("validateSelectedVideo", () => {
       "too large",
     );
   });
+
+  it("rejects unsupported mime types even when the extension looks valid", () => {
+    expect(validateSelectedVideo({ name: "episode.mp4", size: 1024, type: "text/plain" })).toContain("not supported");
+  });
 });

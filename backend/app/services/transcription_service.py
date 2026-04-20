@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.constants import ProjectStatus
+from app.core.logging import get_logger
 from app.models.project import Project
 from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
@@ -15,6 +16,8 @@ try:
     from faster_whisper import WhisperModel
 except ImportError:  # pragma: no cover - dependency validation happens at runtime
     WhisperModel = None
+
+logger = get_logger(__name__)
 
 
 def _humanize_transcription_error(exc: Exception) -> tuple[int, str]:
@@ -74,6 +77,13 @@ def transcribe_project(db: Session, project: Project, source_video: SourceVideo)
         source_path = resolve_data_path(source_video.stored_path)
         if not source_path.exists():
             raise HTTPException(status_code=404, detail="Source video file is missing on disk")
+        logger.info(
+            "Starting transcription. project_id=%s source_path=%s model=%s device=%s",
+            project.id,
+            source_path,
+            settings.whisper_model_size,
+            settings.whisper_device,
+        )
         segments_iter, info = model.transcribe(
             str(source_path),
             vad_filter=True,
@@ -134,15 +144,23 @@ def transcribe_project(db: Session, project: Project, source_video: SourceVideo)
         db.add(project)
         db.commit()
         db.refresh(transcript)
+        logger.info(
+            "Transcription completed. project_id=%s language=%s segments=%s",
+            project.id,
+            getattr(info, "language", None),
+            len(normalized_segments),
+        )
         return transcript
-    except HTTPException:
+    except HTTPException as exc:
         project.status = ProjectStatus.failed.value
         db.add(project)
         db.commit()
+        logger.warning("Transcription request failed. project_id=%s detail=%s", project.id, exc.detail)
         raise
     except Exception as exc:
         project.status = ProjectStatus.failed.value
         db.add(project)
         db.commit()
         status_code, detail = _humanize_transcription_error(exc)
+        logger.exception("Unhandled transcription failure. project_id=%s", project.id)
         raise HTTPException(status_code=status_code, detail=detail) from exc

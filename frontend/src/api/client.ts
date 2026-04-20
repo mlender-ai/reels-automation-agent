@@ -30,20 +30,34 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
-  return parseResponse<T>(response);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+    return parseResponse<T>(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(`Unable to reach the local API at ${API_BASE}. Make sure the backend is running and retry.`, 0);
+  }
 }
 
 export async function requestForm<T>(path: string, formData: FormData): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    body: formData,
-  });
-  return parseResponse<T>(response);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      body: formData,
+    });
+    return parseResponse<T>(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(`Unable to reach the local API at ${API_BASE}. Make sure the backend is running and retry.`, 0);
+  }
 }

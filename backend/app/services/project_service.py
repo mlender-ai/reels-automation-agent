@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.constants import ClipStatus, ExportStatus, ProjectStatus
+from app.core.logging import get_logger
 from app.models.clip_candidate import ClipCandidate
 from app.models.export import Export
 from app.models.project import Project
@@ -24,6 +25,8 @@ from app.utils.paths import (
     resolve_data_path,
     to_relative_data_path,
 )
+
+logger = get_logger(__name__)
 
 
 def get_project_or_404(db: Session, project_id: int) -> Project:
@@ -48,6 +51,7 @@ def create_project(db: Session, title: str, source_type: str = "upload") -> Proj
     db.commit()
     db.refresh(project)
     ensure_project_directories(project.id)
+    logger.info("Created project. project_id=%s title=%s source_type=%s", project.id, title, source_type)
     return get_project_or_404(db, project.id)
 
 
@@ -75,6 +79,7 @@ def _clear_directory_contents(path: Path) -> None:
 
 
 def reset_project_outputs(db: Session, project: Project) -> None:
+    logger.info("Resetting derived project outputs. project_id=%s", project.id)
     for transcript in list(project.transcripts):
         db.delete(transcript)
     for clip in list(project.clip_candidates):
@@ -87,11 +92,19 @@ def reset_project_outputs(db: Session, project: Project) -> None:
 
 def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -> Project:
     if not upload_file.filename:
+        logger.warning("Upload rejected because filename is missing. project_id=%s", project.id)
         raise HTTPException(status_code=400, detail="Upload is missing a filename")
 
     upload_file.file.seek(0, os.SEEK_END)
     upload_size = upload_file.file.tell()
     upload_file.file.seek(0)
+    logger.info(
+        "Validating source upload. project_id=%s filename=%s content_type=%s size_bytes=%s",
+        project.id,
+        upload_file.filename,
+        upload_file.content_type,
+        upload_size,
+    )
     validate_video_upload(upload_file.filename, upload_file.content_type, upload_size)
 
     ensure_project_directories(project.id)
@@ -104,6 +117,12 @@ def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -
     try:
         metadata = probe_video(target)
     except HTTPException as exc:
+        logger.warning(
+            "Uploaded file could not be probed as video. project_id=%s filename=%s detail=%s",
+            project.id,
+            upload_file.filename,
+            exc.detail,
+        )
         target.unlink(missing_ok=True)
         raise HTTPException(
             status_code=400,
@@ -139,6 +158,14 @@ def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -
     db.commit()
     if previous_video_path and previous_video_path != relative_path:
         resolve_data_path(previous_video_path).unlink(missing_ok=True)
+    logger.info(
+        "Stored source upload. project_id=%s duration_seconds=%s width=%s height=%s fps=%s",
+        project.id,
+        metadata["duration_seconds"],
+        metadata["width"],
+        metadata["height"],
+        metadata["fps"],
+    )
     return get_project_or_404(db, project.id)
 
 

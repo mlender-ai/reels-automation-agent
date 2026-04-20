@@ -10,6 +10,7 @@ import { LoadingState } from "../components/LoadingState";
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/useToast";
 import { formatDuration } from "../lib/formatters";
+import { validateClipWindow } from "../lib/clipValidation";
 import { resolveMediaUrl } from "../lib/media";
 import type { ClipCandidate, Project } from "../types";
 
@@ -52,11 +53,8 @@ export function ClipReviewPage() {
   }, [clip?.latest_export?.output_url, project?.source_video?.file_url]);
 
   const validationError = useMemo(() => {
-    if (form.end_time <= form.start_time) return "End time must be greater than start time.";
-    if (form.end_time - form.start_time < 8) return "Clip duration should remain long enough to make sense on review.";
-    if (form.end_time - form.start_time > 45) return "Keep the review clip at 45 seconds or less so it remains export-ready.";
-    return "";
-  }, [form.end_time, form.start_time]);
+    return validateClipWindow(form.start_time, form.end_time, project?.source_video?.duration_seconds) ?? "";
+  }, [form.end_time, form.start_time, project?.source_video?.duration_seconds]);
 
   async function load() {
     if (!clipId) return;
@@ -391,7 +389,7 @@ export function ClipReviewPage() {
             <button
               type="button"
               onClick={handleApprove}
-              disabled={saving || exporting || statusSubmitting !== null}
+              disabled={saving || exporting || statusSubmitting !== null || Boolean(validationError)}
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
             >
               <Check className="h-4 w-4" />

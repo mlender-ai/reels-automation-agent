@@ -11,6 +11,7 @@ DATA_DIR = BACKEND_DIR / "data"
 
 class Settings(BaseSettings):
     app_name: str = "Reels Automation Agent API"
+    log_level: str = "INFO"
     database_url: str = f"sqlite:///{(DATA_DIR / 'app.db').as_posix()}"
     frontend_origin: str = "http://localhost:5173"
     data_dir: Path = DATA_DIR

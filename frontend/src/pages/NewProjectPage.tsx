@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom";
 
 import { api } from "../api";
 import { useToast } from "../hooks/useToast";
-import { MAX_UPLOAD_SIZE_MB, validateSelectedVideo } from "../lib/uploadValidation";
+import { ACCEPTED_VIDEO_INPUT, MAX_UPLOAD_SIZE_MB, validateSelectedVideo } from "../lib/uploadValidation";
 
 export function NewProjectPage() {
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [stage, setStage] = useState<"idle" | "creating" | "uploading">("idle");
   const [submitting, setSubmitting] = useState(false);
+  const [submissionNotice, setSubmissionNotice] = useState<{ tone: "error" | "success"; title: string; description: string } | null>(null);
   const navigate = useNavigate();
   const { pushToast } = useToast();
   const fileError = useMemo(() => (file ? validateSelectedVideo(file) : null), [file]);
@@ -19,6 +20,11 @@ export function NewProjectPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!title.trim() || !file) {
+      setSubmissionNotice({
+        tone: "error",
+        title: "Project setup is incomplete",
+        description: "Add a project title and choose one local video file before continuing.",
+      });
       pushToast({
         tone: "error",
         title: "Project setup is incomplete",
@@ -27,6 +33,11 @@ export function NewProjectPage() {
       return;
     }
     if (fileError) {
+      setSubmissionNotice({
+        tone: "error",
+        title: "Choose a valid video file",
+        description: fileError,
+      });
       pushToast({
         tone: "error",
         title: "Choose a valid video file",
@@ -37,10 +48,16 @@ export function NewProjectPage() {
 
     try {
       setSubmitting(true);
+      setSubmissionNotice(null);
       setStage("creating");
       const project = await api.createProject({ title: title.trim(), source_type: "upload" });
       setStage("uploading");
       await api.uploadProjectVideo(project.id, file);
+      setSubmissionNotice({
+        tone: "success",
+        title: "Project created",
+        description: "The source file is stored locally. Next step is transcription from the project detail page.",
+      });
       pushToast({
         tone: "success",
         title: "Project created",
@@ -48,6 +65,11 @@ export function NewProjectPage() {
       });
       navigate(`/projects/${project.id}`);
     } catch (error) {
+      setSubmissionNotice({
+        tone: "error",
+        title: stage === "uploading" ? "Video upload failed" : "Project creation failed",
+        description: (error as Error).message,
+      });
       pushToast({
         tone: "error",
         title: stage === "uploading" ? "Video upload failed" : "Project creation failed",
@@ -82,7 +104,7 @@ export function NewProjectPage() {
           <label className="block rounded-[28px] border border-dashed border-white/15 bg-black/20 p-6 transition hover:border-cyan-300/35">
             <input
               type="file"
-              accept="video/mp4,video/quicktime,video/x-m4v,video/*"
+              accept={ACCEPTED_VIDEO_INPUT}
               className="hidden"
               onChange={(event) => {
                 const nextFile = event.target.files?.[0] ?? null;
@@ -106,6 +128,19 @@ export function NewProjectPage() {
           {submitting ? (
             <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
               {stage === "creating" ? "Creating project record..." : "Uploading source video into the local project folder..."}
+            </div>
+          ) : null}
+
+          {submissionNotice ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm ${
+                submissionNotice.tone === "error"
+                  ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
+                  : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+              }`}
+            >
+              <p className="font-semibold">{submissionNotice.title}</p>
+              <p className="mt-2 leading-6 text-white/85">{submissionNotice.description}</p>
             </div>
           ) : null}
         </div>

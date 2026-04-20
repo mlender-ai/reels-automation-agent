@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.constants import ClipStatus, ExportStatus, ProjectStatus
+from app.core.logging import get_logger
 from app.models.clip_candidate import ClipCandidate
 from app.models.export import Export
 from app.models.project import Project
@@ -13,6 +14,8 @@ from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.subtitle_service import build_subtitle_style, write_clip_srt
 from app.services.validation_service import validate_clip_window
 from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
+
+logger = get_logger(__name__)
 
 
 def export_clip(
@@ -41,6 +44,13 @@ def export_clip(
     db.add(export_record)
     db.commit()
     db.refresh(export_record)
+    logger.info(
+        "Starting export. project_id=%s clip_id=%s start_time=%s end_time=%s",
+        project.id,
+        clip.id,
+        clip.start_time,
+        clip.end_time,
+    )
 
     try:
         clip.duration = validate_clip_window(clip.start_time, clip.end_time, max_source_duration=source_duration_seconds)
@@ -66,6 +76,7 @@ def export_clip(
         db.add_all([export_record, clip, project])
         db.commit()
         db.refresh(export_record)
+        logger.info("Export completed. project_id=%s clip_id=%s output_path=%s", project.id, clip.id, export_record.output_path)
         return export_record
     except HTTPException as exc:
         export_record.status = ExportStatus.failed.value
@@ -75,6 +86,7 @@ def export_clip(
         db.commit()
         for path in [output_file, thumbnail_file]:
             Path(path).unlink(missing_ok=True)
+        logger.warning("Export failed. project_id=%s clip_id=%s detail=%s", project.id, clip.id, exc.detail)
         raise HTTPException(status_code=exc.status_code, detail=str(exc.detail)) from exc
     except Exception as exc:
         export_record.status = ExportStatus.failed.value
@@ -84,4 +96,5 @@ def export_clip(
         db.commit()
         for path in [output_file, thumbnail_file]:
             Path(path).unlink(missing_ok=True)
+        logger.exception("Unexpected export failure. project_id=%s clip_id=%s", project.id, clip.id)
         raise HTTPException(status_code=500, detail=f"Export failed: {exc}") from exc

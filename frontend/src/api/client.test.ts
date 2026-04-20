@@ -55,4 +55,16 @@ describe("api client", () => {
       status: 504,
     });
   });
+
+  it("returns a friendly local api message when fetch fails entirely", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
+    );
+
+    await expect(request("/health")).rejects.toMatchObject({
+      message: expect.stringContaining("Unable to reach the local API"),
+      status: 0,
+    });
+  });
 });

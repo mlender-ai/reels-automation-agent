@@ -6,6 +6,15 @@ from fastapi import HTTPException
 
 
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".webm", ".mkv"}
+ALLOWED_VIDEO_CONTENT_TYPES = {
+    "video/mp4",
+    "video/quicktime",
+    "video/x-m4v",
+    "video/webm",
+    "video/x-matroska",
+    "video/mkv",
+    "application/octet-stream",
+}
 MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024 * 1024
 MIN_CLIP_DURATION_SECONDS = 8.0
 MAX_CLIP_DURATION_SECONDS = 45.0
@@ -18,8 +27,12 @@ def validate_video_upload(filename: str, content_type: str | None, size_bytes: i
         raise HTTPException(status_code=400, detail=f"Unsupported video file type. Allowed extensions: {allowed}")
 
     normalized_content_type = (content_type or "").strip().lower()
-    if normalized_content_type and not normalized_content_type.startswith("video/") and normalized_content_type != "application/octet-stream":
-        raise HTTPException(status_code=400, detail=f"Unsupported upload content type: {normalized_content_type}")
+    if normalized_content_type and normalized_content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
+        allowed_types = ", ".join(sorted(ALLOWED_VIDEO_CONTENT_TYPES - {"application/octet-stream"}))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported upload content type: {normalized_content_type}. Expected one of: {allowed_types}",
+        )
 
     if size_bytes <= 0:
         raise HTTPException(status_code=400, detail="Uploaded video file is empty")
@@ -30,6 +43,8 @@ def validate_video_upload(filename: str, content_type: str | None, size_bytes: i
 
 
 def validate_clip_window(start_time: float, end_time: float, max_source_duration: float | None = None) -> float:
+    if start_time < 0 or end_time < 0:
+        raise HTTPException(status_code=422, detail="Clip start_time and end_time must be zero or greater")
     if end_time <= start_time:
         raise HTTPException(status_code=422, detail="Clip end_time must be greater than start_time")
 
