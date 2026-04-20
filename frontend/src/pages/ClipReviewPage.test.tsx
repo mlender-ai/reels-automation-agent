@@ -1,0 +1,156 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { ToastProvider } from "../components/ToastProvider";
+import type { ClipCandidate, Project } from "../types";
+import { api } from "../api";
+import { ClipReviewPage } from "./ClipReviewPage";
+
+const navigateMock = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
+
+vi.mock("../api", () => ({
+  api: {
+    getClip: vi.fn(),
+    getProject: vi.fn(),
+    exportClip: vi.fn(),
+    queuePublish: vi.fn(),
+    updateClip: vi.fn(),
+    approveClip: vi.fn(),
+    rejectClip: vi.fn(),
+  },
+}));
+
+function makeProject(): Project {
+  return {
+    id: 1,
+    title: "Review test project",
+    source_type: "upload",
+    source_path: "projects/1/source/demo.mp4",
+    status: "ready_for_review",
+    created_at: "2026-04-20T00:00:00Z",
+    updated_at: "2026-04-20T00:00:00Z",
+    clip_count: 1,
+    pending_clip_count: 0,
+    rejected_clip_count: 0,
+    approved_clip_count: 1,
+    export_count: 0,
+    next_action: "export_or_publish",
+    source_video: {
+      id: 1,
+      project_id: 1,
+      original_filename: "demo.mp4",
+      stored_path: "projects/1/source/demo.mp4",
+      file_url: "/files/projects/1/source/demo.mp4",
+      duration_seconds: 90,
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      created_at: "2026-04-20T00:00:00Z",
+    },
+  };
+}
+
+function makeClip(overrides: Partial<ClipCandidate> = {}): ClipCandidate {
+  return {
+    id: 11,
+    project_id: 1,
+    start_time: 8,
+    end_time: 28,
+    duration: 20,
+    score: 82,
+    hook_text: "Three mistakes kill retention in the first minute.",
+    suggested_title: "Three retention mistakes",
+    suggested_description: "A concise explanation of what hurts short-form retention.",
+    suggested_hashtags: "#shorts #retention",
+    subtitle_preset: "clean",
+    status: "approved",
+    created_at: "2026-04-20T00:00:00Z",
+    updated_at: "2026-04-20T00:00:00Z",
+    latest_export: null,
+    ...overrides,
+  };
+}
+
+function renderClipReview() {
+  return render(
+    <MemoryRouter initialEntries={["/clips/11"]}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/clips/:clipId" element={<ClipReviewPage />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("ClipReviewPage", () => {
+  beforeEach(() => {
+    navigateMock.mockReset();
+    vi.mocked(api.getProject).mockReset();
+    vi.mocked(api.getClip).mockReset();
+    vi.mocked(api.exportClip).mockReset();
+    vi.mocked(api.queuePublish).mockReset();
+    vi.mocked(api.updateClip).mockReset();
+    vi.mocked(api.approveClip).mockReset();
+    vi.mocked(api.rejectClip).mockReset();
+  });
+
+  it("shows an inline export failure notice when export fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getClip).mockResolvedValue(makeClip());
+    vi.mocked(api.getProject).mockResolvedValue(makeProject());
+    vi.mocked(api.exportClip).mockRejectedValue(new Error("FFmpeg unavailable"));
+
+    renderClipReview();
+
+    expect(await screen.findByText("Review test project")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Export 1080x1920/i }));
+
+    expect((await screen.findAllByText("Export failed")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/FFmpeg unavailable/i).length).toBeGreaterThan(0);
+  });
+
+  it("queues publish and navigates to the publish page when the clip already has an export", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getClip).mockResolvedValue(
+      makeClip({
+        status: "exported",
+        latest_export: {
+          id: 7,
+          clip_candidate_id: 11,
+          output_path: "projects/1/exports/clip-11.mp4",
+          output_url: "/files/projects/1/exports/clip-11.mp4",
+          subtitle_path: "projects/1/exports/clip-11.srt",
+          subtitle_url: "/files/projects/1/exports/clip-11.srt",
+          thumbnail_path: "projects/1/exports/clip-11.jpg",
+          thumbnail_url: "/files/projects/1/exports/clip-11.jpg",
+          status: "completed",
+          created_at: "2026-04-20T00:00:00Z",
+          updated_at: "2026-04-20T00:00:00Z",
+        },
+      }),
+    );
+    vi.mocked(api.getProject).mockResolvedValue(makeProject());
+    vi.mocked(api.queuePublish).mockResolvedValue({ id: 1, status: "queued" } as never);
+
+    renderClipReview();
+
+    expect(await screen.findByText("Review test project")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Queue youtube/i }));
+
+    await waitFor(() => {
+      expect(api.queuePublish).toHaveBeenCalledWith(11, "youtube");
+      expect(navigateMock).toHaveBeenCalledWith("/publish");
+    });
+  });
+});

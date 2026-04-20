@@ -46,11 +46,14 @@ export function NewProjectPage() {
       return;
     }
 
+    let failedStage: "creating" | "uploading" = "creating";
+
     try {
       setSubmitting(true);
       setSubmissionNotice(null);
       setStage("creating");
       const project = await api.createProject({ title: title.trim(), source_type: "upload" });
+      failedStage = "uploading";
       setStage("uploading");
       await api.uploadProjectVideo(project.id, file);
       setSubmissionNotice({
@@ -65,14 +68,15 @@ export function NewProjectPage() {
       });
       navigate(`/projects/${project.id}`);
     } catch (error) {
+      const noticeTitle = failedStage === "uploading" ? "Video upload failed" : "Project creation failed";
       setSubmissionNotice({
         tone: "error",
-        title: stage === "uploading" ? "Video upload failed" : "Project creation failed",
+        title: noticeTitle,
         description: (error as Error).message,
       });
       pushToast({
         tone: "error",
-        title: stage === "uploading" ? "Video upload failed" : "Project creation failed",
+        title: noticeTitle,
         description: (error as Error).message,
       });
     } finally {
