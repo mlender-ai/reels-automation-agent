@@ -4,6 +4,7 @@ from app.models.project import Project
 from app.models.publish_job import PublishJob
 from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
+from app.models.workflow_job import WorkflowJob
 from app.services.transcription_service import load_transcript_segments
 from app.utils.paths import public_file_url
 
@@ -143,4 +144,27 @@ def serialize_publish_job(job: PublishJob) -> dict:
         "updated_at": job.updated_at,
         "clip_title": clip_title,
         "project_id": project_id,
+    }
+
+
+def serialize_workflow_job(job: WorkflowJob) -> dict:
+    clip_title = job.clip_candidate.suggested_title if getattr(job, "clip_candidate", None) else None
+    project_title = job.project.title if getattr(job, "project", None) else None
+    return {
+        "id": job.id,
+        "project_id": job.project_id,
+        "clip_candidate_id": job.clip_candidate_id,
+        "job_type": job.job_type,
+        "status": job.status,
+        "progress": job.progress,
+        "message": job.message,
+        "error_detail": job.error_detail,
+        "payload_json": job.payload_json,
+        "result_json": job.result_json,
+        "started_at": job.started_at,
+        "completed_at": job.completed_at,
+        "created_at": job.created_at,
+        "updated_at": job.updated_at,
+        "project_title": project_title,
+        "clip_title": clip_title,
     }

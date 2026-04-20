@@ -1,4 +1,4 @@
-from app.models import Base, ClipCandidate, Export, Project, PublishJob, SourceVideo, Transcript
+from app.models import Base, ClipCandidate, Export, Project, PublishJob, SourceVideo, Transcript, WorkflowJob
 
 __all__ = [
     "Base",
@@ -8,5 +8,5 @@ __all__ = [
     "PublishJob",
     "SourceVideo",
     "Transcript",
+    "WorkflowJob",
 ]
-

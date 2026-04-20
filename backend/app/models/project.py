@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.clip_candidate import ClipCandidate
     from app.models.source_video import SourceVideo
     from app.models.transcript import Transcript
+    from app.models.workflow_job import WorkflowJob
 
 
 class Project(TimestampMixin, Base):
@@ -36,4 +37,8 @@ class Project(TimestampMixin, Base):
         cascade="all, delete-orphan",
         order_by="ClipCandidate.score.desc()",
     )
-
+    workflow_jobs: Mapped[list["WorkflowJob"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        order_by="WorkflowJob.created_at.desc()",
+    )

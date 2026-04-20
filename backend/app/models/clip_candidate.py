@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.export import Export
     from app.models.project import Project
     from app.models.publish_job import PublishJob
+    from app.models.workflow_job import WorkflowJob
 
 
 class ClipCandidate(Base, TimestampMixin):
@@ -39,4 +40,8 @@ class ClipCandidate(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="PublishJob.created_at.desc()",
     )
-
+    workflow_jobs: Mapped[list["WorkflowJob"]] = relationship(
+        back_populates="clip_candidate",
+        cascade="all, delete-orphan",
+        order_by="WorkflowJob.created_at.desc()",
+    )

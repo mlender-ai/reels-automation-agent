@@ -12,6 +12,7 @@ const statusStyles: Record<string, string> = {
   rejected: "bg-rose-500/20 text-rose-200",
   exported: "bg-cyan-500/20 text-cyan-200",
   processing: "bg-violet-500/20 text-violet-200",
+  running: "bg-violet-500/20 text-violet-200",
   completed: "bg-emerald-500/20 text-emerald-200",
   queued: "bg-amber-500/20 text-amber-200",
   failed: "bg-rose-500/20 text-rose-200",

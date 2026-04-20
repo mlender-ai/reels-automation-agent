@@ -5,6 +5,7 @@ from app.models.project import Project
 from app.models.publish_job import PublishJob
 from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
+from app.models.workflow_job import WorkflowJob
 
 __all__ = [
     "Base",
@@ -14,5 +15,5 @@ __all__ = [
     "PublishJob",
     "SourceVideo",
     "Transcript",
+    "WorkflowJob",
 ]
-

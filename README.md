@@ -30,6 +30,7 @@ This repository is the basecamp for two tracks that evolve together:
 - clip candidate generation
 - candidate editing
 - approve / reject workflow
+- background workflow jobs with progress polling for transcript, clip generation, export, and publish queue
 - vertical `1080x1920` export with burned-in subtitles
 - mock publish queue for YouTube Shorts / Instagram Reels / TikTok adapter structure
 
@@ -105,7 +106,6 @@ reels-automation-agent/
 │   ├── scale_system.md
 │   └── self_improve_repo.md
 ├── scripts/
-│   ├── automation_common.py
 │   ├── common_llm.py
 │   ├── run_agent_loop.py
 │   ├── generate_issue_report.py
@@ -202,12 +202,12 @@ VITE_API_BASE_URL=http://127.0.0.1:8765 npm run dev -- --host 127.0.0.1 --port 8
 
 1. Start backend and frontend.
 2. Create a project and upload a local video.
-3. Extract the transcript.
-4. Generate clip candidates.
-5. Review one candidate and approve or reject it.
-6. Export a vertical MP4.
-7. Review the export.
-8. Queue a mock publish job.
+3. Extract the transcript. The project page now queues a background job and polls progress automatically.
+4. Generate clip candidates. The project detail page will refresh and route you into the review queue once candidates are ready.
+5. Review one candidate, nudge timing, and approve or reject it.
+6. Export a vertical MP4. Export now runs as a background job from the clip review screen.
+7. Review the export from the exports page after the export job completes.
+8. Queue a mock publish job and monitor its result from the clip review page or publish queue.
 
 Optional demo seed:
 
@@ -312,6 +312,7 @@ Detailed rules live in `docs/ai-system/PR_POLICY.md`.
 - the local shortform product flow
 - transcript extraction
 - clip generation
+- background job tracking and progress polling in the UI
 - review and export
 - mock publish queue
 - AI loop report generation

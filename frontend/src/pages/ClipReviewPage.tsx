@@ -1,4 +1,4 @@
-import { Check, Download, ExternalLink, Save, Send, X } from "lucide-react";
+import { Check, Clock3, Download, ExternalLink, Save, Send, SkipBack, SkipForward, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -8,11 +8,13 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { StatusBadge } from "../components/StatusBadge";
+import { WorkflowJobList } from "../components/WorkflowJobList";
+import { useInterval } from "../hooks/useInterval";
 import { useToast } from "../hooks/useToast";
-import { formatDuration } from "../lib/formatters";
+import { formatDuration, workflowJobTypeLabel } from "../lib/formatters";
 import { validateClipWindow } from "../lib/clipValidation";
 import { resolveMediaUrl } from "../lib/media";
-import type { ClipCandidate, Project } from "../types";
+import type { ClipCandidate, Project, WorkflowJob } from "../types";
 
 const presets = [
   { value: "clean", label: "Clean", note: "Balanced sizing and subtle outline." },
@@ -20,23 +22,34 @@ const presets = [
   { value: "creator", label: "Creator", note: "Heavier treatment for social-first energy." },
 ];
 
+const ACTIVE_JOB_STATUSES = new Set(["queued", "running"]);
+
+function upsertJob(jobs: WorkflowJob[], job: WorkflowJob) {
+  return [job, ...jobs.filter((candidate) => candidate.id !== job.id)].sort(
+    (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+  );
+}
+
 export function ClipReviewPage() {
   const { clipId } = useParams();
   const navigate = useNavigate();
   const { pushToast } = useToast();
   const [clip, setClip] = useState<ClipCandidate | null>(null);
   const [project, setProject] = useState<Project | null>(null);
+  const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
-  const [queueingPlatform, setQueueingPlatform] = useState<string | null>(null);
   const [statusSubmitting, setStatusSubmitting] = useState<"approve" | "reject" | null>(null);
   const [pageError, setPageError] = useState("");
   const [actionNotice, setActionNotice] = useState<{ tone: "error" | "info" | "success"; title: string; description: string } | null>(
     null,
   );
+  const [navigateOnExportCompletion, setNavigateOnExportCompletion] = useState(false);
+  const [navigateOnPublishCompletion, setNavigateOnPublishCompletion] = useState(false);
   const sourcePreviewRef = useRef<HTMLVideoElement | null>(null);
+  const seededJobIdsRef = useRef(false);
+  const announcedJobIdsRef = useRef<Set<number>>(new Set());
   const [form, setForm] = useState({
     start_time: 0,
     end_time: 0,
@@ -56,15 +69,29 @@ export function ClipReviewPage() {
     return validateClipWindow(form.start_time, form.end_time, project?.source_video?.duration_seconds) ?? "";
   }, [form.end_time, form.start_time, project?.source_video?.duration_seconds]);
 
-  async function load() {
+  const relevantJobs = useMemo(() => jobs.filter((job) => job.job_type === "export" || job.job_type === "publish"), [jobs]);
+  const activeExportJob = useMemo(
+    () => relevantJobs.find((job) => job.job_type === "export" && ACTIVE_JOB_STATUSES.has(job.status)) ?? null,
+    [relevantJobs],
+  );
+  const activePublishJob = useMemo(
+    () => relevantJobs.find((job) => job.job_type === "publish" && ACTIVE_JOB_STATUSES.has(job.status)) ?? null,
+    [relevantJobs],
+  );
+
+  async function load(options: { silent?: boolean } = {}) {
     if (!clipId) return;
     try {
-      setLoading(true);
+      if (!options.silent) setLoading(true);
       setPageError("");
       const clipResponse = await api.getClip(Number(clipId));
+      const [projectResponse, jobsResponse] = await Promise.all([
+        api.getProject(clipResponse.project_id),
+        api.listClipJobs(Number(clipId)),
+      ]);
       setClip(clipResponse);
-      const projectResponse = await api.getProject(clipResponse.project_id);
       setProject(projectResponse);
+      setJobs(jobsResponse);
       setForm({
         start_time: clipResponse.start_time,
         end_time: clipResponse.end_time,
@@ -78,13 +105,56 @@ export function ClipReviewPage() {
       setPageError(message);
       pushToast({ tone: "error", title: "Clip review failed to load", description: message });
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   }
 
   useEffect(() => {
     void load();
   }, [clipId]);
+
+  useEffect(() => {
+    if (loading || seededJobIdsRef.current === true) return;
+    announcedJobIdsRef.current = new Set(jobs.map((job) => job.id));
+    seededJobIdsRef.current = true;
+  }, [jobs, loading]);
+
+  useInterval(
+    () => {
+      void load({ silent: true });
+    },
+    clipId && (activeExportJob || activePublishJob) ? 2000 : null,
+  );
+
+  useEffect(() => {
+    if (!seededJobIdsRef.current) return;
+    const terminalJobs = relevantJobs.filter((job) => !ACTIVE_JOB_STATUSES.has(job.status) && !announcedJobIdsRef.current.has(job.id));
+    for (const job of terminalJobs) {
+      announcedJobIdsRef.current.add(job.id);
+      if (job.status === "completed") {
+        const description =
+          job.job_type === "export"
+            ? "The 1080x1920 MP4 is ready. You can review it from the exports page."
+            : "The mock platform adapter accepted the clip and stored the publish job.";
+        setActionNotice({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} completed`, description });
+        pushToast({ tone: "success", title: `${workflowJobTypeLabel(job.job_type)} completed`, description });
+        if (job.job_type === "export" && navigateOnExportCompletion) {
+          setNavigateOnExportCompletion(false);
+          navigate("/exports");
+        }
+        if (job.job_type === "publish" && navigateOnPublishCompletion) {
+          setNavigateOnPublishCompletion(false);
+          navigate("/publish");
+        }
+      } else if (job.status === "failed") {
+        const description = job.error_detail ?? "Check the local runtime tools and export prerequisites, then try again.";
+        setActionNotice({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} failed`, description });
+        pushToast({ tone: "error", title: `${workflowJobTypeLabel(job.job_type)} failed`, description });
+        if (job.job_type === "export") setNavigateOnExportCompletion(false);
+        if (job.job_type === "publish") setNavigateOnPublishCompletion(false);
+      }
+    }
+  }, [jobs, navigate, navigateOnExportCompletion, navigateOnPublishCompletion, pushToast, relevantJobs]);
 
   async function handleSave() {
     if (!clip) return;
@@ -148,54 +218,58 @@ export function ClipReviewPage() {
   async function handleExport() {
     if (!clip) return;
     try {
-      setExporting(true);
       setActionNotice(null);
-      const exportRecord = await api.exportClip(clip.id);
-      const refreshed = await api.getClip(clip.id);
-      setClip(refreshed);
+      const job = await api.startClipExportJob(clip.id);
+      setJobs((current) => upsertJob(current, job));
+      setNavigateOnExportCompletion(true);
       setActionNotice({
-        tone: "success",
-        title: "Export completed",
-        description: exportRecord.output_path ?? "The vertical MP4 is ready. You can open it here or jump to the exports page.",
+        tone: "info",
+        title: "Export queued",
+        description: "Vertical render now runs in the background. This screen will keep polling progress until the export lands in the exports list.",
       });
-      pushToast({
-        tone: "success",
-        title: "Export completed",
-        description: exportRecord.output_path ?? "The vertical MP4 is ready and visible on the exports page.",
-      });
+      pushToast({ tone: "success", title: "Export queued", description: "Background export has started." });
     } catch (error) {
       const message = (error as Error).message;
       setActionNotice({
         tone: "error",
-        title: "Export failed",
+        title: "Export failed to start",
         description: `${message} Check FFmpeg, local disk space, and clip timing, then retry export from this screen.`,
       });
-      pushToast({ tone: "error", title: "Export failed", description: message });
-    } finally {
-      setExporting(false);
+      pushToast({ tone: "error", title: "Export failed to start", description: message });
     }
   }
 
   async function handleQueuePublish(platform: string) {
     if (!clip) return;
     try {
-      setQueueingPlatform(platform);
       setActionNotice(null);
-      await api.queuePublish(clip.id, platform);
+      const job = await api.startClipPublishJob(clip.id, platform);
+      setJobs((current) => upsertJob(current, job));
+      setNavigateOnPublishCompletion(true);
       setActionNotice({
-        tone: "success",
+        tone: "info",
         title: "Publish queued",
-        description: `The mock ${platform} adapter accepted this exported clip.`,
+        description: `The mock ${platform} adapter is now processing this exported clip in the background.`,
       });
-      pushToast({ tone: "success", title: "Publish job queued", description: `Mock ${platform} adapter accepted the clip.` });
-      navigate("/publish");
+      pushToast({ tone: "success", title: "Publish queued", description: `Mock ${platform} adapter accepted the request.` });
     } catch (error) {
       const message = (error as Error).message;
       setActionNotice({ tone: "error", title: "Queue publish failed", description: `${message} Export must exist before queueing a publish job.` });
       pushToast({ tone: "error", title: "Queue publish failed", description: message });
-    } finally {
-      setQueueingPlatform(null);
     }
+  }
+
+  function seekPreviewTo(time: number) {
+    if (!sourcePreviewRef.current) return;
+    sourcePreviewRef.current.currentTime = Math.max(0, time);
+    void sourcePreviewRef.current.play().catch(() => undefined);
+  }
+
+  function nudgeBoundary(field: "start_time" | "end_time", delta: number) {
+    setForm((current) => {
+      const nextValue = Math.max(0, Number((current[field] + delta).toFixed(1)));
+      return { ...current, [field]: nextValue };
+    });
   }
 
   if (loading) return <LoadingState label="Loading clip review..." />;
@@ -206,6 +280,14 @@ export function ClipReviewPage() {
     return <EmptyState title="Clip not found" description="This clip could not be loaded from the local API." />;
   }
 
+  const preflightItems = [
+    { label: "Clip approved", ready: clip.status === "approved" || clip.status === "exported" },
+    { label: "Timing valid", ready: !validationError },
+    { label: "Metadata filled", ready: Boolean(form.suggested_title.trim() && form.suggested_description.trim() && form.suggested_hashtags.trim()) },
+    { label: "Export ready", ready: clip.status === "approved" || clip.status === "exported" },
+    { label: "Publish ready", ready: Boolean(clip.latest_export?.output_url) && !activePublishJob },
+  ];
+
   return (
     <div className="grid gap-8 xl:grid-cols-[0.85fr,1.15fr]">
       <section className="space-y-6">
@@ -214,7 +296,7 @@ export function ClipReviewPage() {
             <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-black shadow-panel">
               <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4">
                 <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white">{formatDuration(clip.duration)}</span>
-                <StatusBadge status={clip.status} />
+                <StatusBadge status={activeExportJob?.status ?? clip.status} />
               </div>
               <div className="aspect-[9/16] bg-black">
                 {previewUrl ? (
@@ -224,7 +306,7 @@ export function ClipReviewPage() {
                     ref={sourcePreviewRef}
                     onLoadedMetadata={() => {
                       if (!clip.latest_export?.output_url && sourcePreviewRef.current) {
-                        sourcePreviewRef.current.currentTime = Math.max(0, clip.start_time);
+                        sourcePreviewRef.current.currentTime = Math.max(0, form.start_time);
                       }
                     }}
                     className="h-full w-full object-cover"
@@ -235,6 +317,24 @@ export function ClipReviewPage() {
                 )}
               </div>
             </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => seekPreviewTo(form.start_time)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+              >
+                <SkipBack className="h-4 w-4" />
+                Jump to start
+              </button>
+              <button
+                type="button"
+                onClick={() => seekPreviewTo(Math.max(form.start_time, form.end_time - 1))}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+              >
+                <SkipForward className="h-4 w-4" />
+                Jump to end
+              </button>
+            </div>
           </div>
         </div>
 
@@ -243,20 +343,50 @@ export function ClipReviewPage() {
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-xs text-slate-500">Start</p>
-              <p className="mt-2 font-semibold text-white">{clip.start_time.toFixed(2)}s</p>
+              <p className="mt-2 font-semibold text-white">{form.start_time.toFixed(2)}s</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-xs text-slate-500">End</p>
-              <p className="mt-2 font-semibold text-white">{clip.end_time.toFixed(2)}s</p>
+              <p className="mt-2 font-semibold text-white">{form.end_time.toFixed(2)}s</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-xs text-slate-500">Subtitle Preset</p>
-              <p className="mt-2 font-semibold capitalize text-white">{clip.subtitle_preset}</p>
+              <p className="mt-2 font-semibold capitalize text-white">{form.subtitle_preset}</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-xs text-slate-500">Latest Export</p>
               <p className="mt-2 font-semibold text-white">{clip.latest_export?.status ?? "none"}</p>
             </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => nudgeBoundary("start_time", -0.5)}
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+            >
+              Start -0.5s
+            </button>
+            <button
+              type="button"
+              onClick={() => nudgeBoundary("start_time", 0.5)}
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+            >
+              Start +0.5s
+            </button>
+            <button
+              type="button"
+              onClick={() => nudgeBoundary("end_time", -0.5)}
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+            >
+              End -0.5s
+            </button>
+            <button
+              type="button"
+              onClick={() => nudgeBoundary("end_time", 0.5)}
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+            >
+              End +0.5s
+            </button>
           </div>
           {clip.latest_export?.output_url ? (
             <div className="mt-4 flex flex-wrap gap-3">
@@ -278,6 +408,24 @@ export function ClipReviewPage() {
               </a>
             </div>
           ) : null}
+        </div>
+
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="font-display text-xl font-semibold text-white">Export Preflight</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Use this checklist before starting a background render or queueing a publish job.</p>
+            </div>
+            <Clock3 className="mt-1 h-5 w-5 text-slate-400" />
+          </div>
+          <div className="mt-5 space-y-3">
+            {preflightItems.map((item) => (
+              <div key={item.label} className="flex items-center justify-between rounded-2xl bg-black/20 px-4 py-3">
+                <span className="text-sm text-white">{item.label}</span>
+                <StatusBadge status={item.ready ? "completed" : "failed"} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -380,7 +528,7 @@ export function ClipReviewPage() {
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving || Boolean(validationError)}
+              disabled={saving || Boolean(validationError) || Boolean(activeExportJob)}
               className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
@@ -389,7 +537,7 @@ export function ClipReviewPage() {
             <button
               type="button"
               onClick={handleApprove}
-              disabled={saving || exporting || statusSubmitting !== null || Boolean(validationError)}
+              disabled={saving || statusSubmitting !== null || Boolean(validationError) || Boolean(activeExportJob)}
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
             >
               <Check className="h-4 w-4" />
@@ -398,7 +546,7 @@ export function ClipReviewPage() {
             <button
               type="button"
               onClick={() => setRejectOpen(true)}
-              disabled={saving || exporting || statusSubmitting !== null}
+              disabled={saving || statusSubmitting !== null || Boolean(activeExportJob)}
               className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
             >
               <X className="h-4 w-4" />
@@ -407,11 +555,11 @@ export function ClipReviewPage() {
             <button
               type="button"
               onClick={handleExport}
-              disabled={(clip.status !== "approved" && clip.status !== "exported") || exporting || Boolean(validationError)}
+              disabled={(clip.status !== "approved" && clip.status !== "exported") || Boolean(activeExportJob) || Boolean(validationError)}
               className="inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
-              {exporting ? "Exporting..." : "Export 1080x1920"}
+              {activeExportJob ? `${activeExportJob.progress}% · Exporting` : "Export 1080x1920"}
             </button>
           </div>
         </div>
@@ -429,16 +577,23 @@ export function ClipReviewPage() {
               <button
                 key={platform}
                 type="button"
-                disabled={!clip.latest_export?.output_url || queueingPlatform !== null}
+                disabled={!clip.latest_export?.output_url || Boolean(activePublishJob)}
                 onClick={() => handleQueuePublish(platform)}
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
-                {queueingPlatform === platform ? "Queueing..." : `Queue ${platform}`}
+                {activePublishJob?.payload_json?.platform === platform ? `${activePublishJob.progress}% · Queueing` : `Queue ${platform}`}
               </button>
             ))}
           </div>
         </div>
+
+        <WorkflowJobList
+          jobs={relevantJobs}
+          title="Clip Automation Activity"
+          description="Export and publish runs continue in the background while you keep adjusting metadata and timing."
+          emptyTitle="Export and publish runs for this clip will appear here."
+        />
       </section>
 
       <ConfirmModal

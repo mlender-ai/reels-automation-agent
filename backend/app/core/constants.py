@@ -32,6 +32,20 @@ class PublishStatus(str, Enum):
     posted = "posted"
 
 
+class WorkflowJobType(str, Enum):
+    transcribe = "transcribe"
+    generate_clips = "generate_clips"
+    export = "export"
+    publish = "publish"
+
+
+class WorkflowJobStatus(str, Enum):
+    queued = "queued"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
 class SubtitlePreset(str, Enum):
     clean = "clean"
     bold = "bold"

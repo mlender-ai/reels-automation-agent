@@ -39,3 +39,18 @@ export function nextActionLabel(nextAction?: string) {
       return "Upload a source video";
   }
 }
+
+export function workflowJobTypeLabel(jobType: string) {
+  switch (jobType) {
+    case "transcribe":
+      return "Transcript Extraction";
+    case "generate_clips":
+      return "Clip Generation";
+    case "export":
+      return "Vertical Export";
+    case "publish":
+      return "Publish Queue";
+    default:
+      return jobType.replace(/_/g, " ");
+  }
+}

@@ -16,7 +16,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.config import settings  # noqa: E402
-from app.core.constants import ClipStatus, ExportStatus, PublishStatus  # noqa: E402
+from app.core.constants import ClipStatus, ExportStatus, PublishStatus, WorkflowJobStatus, WorkflowJobType  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -213,3 +213,72 @@ class ApiFlowTests(unittest.TestCase):
         response = self.client.post(f"/clips/{clips[0]['id']}/queue-publish", json={"platform": "youtube"})
         self.assertEqual(response.status_code, 400)
         self.assertIn("Export the clip", response.json()["detail"])
+
+    def test_project_job_endpoints_queue_and_list_background_runs(self) -> None:
+        project = self._create_project()
+        self._upload_source(project["id"])
+
+        with patch("app.api.projects.run_transcription_job", side_effect=lambda _job_id: None):
+            transcribe_job_response = self.client.post(f"/projects/{project['id']}/transcribe/start")
+
+        self.assertEqual(transcribe_job_response.status_code, 202, transcribe_job_response.text)
+        transcribe_job = transcribe_job_response.json()
+        self.assertEqual(transcribe_job["job_type"], WorkflowJobType.transcribe.value)
+        self.assertEqual(transcribe_job["status"], WorkflowJobStatus.queued.value)
+
+        jobs_response = self.client.get(f"/projects/{project['id']}/jobs")
+        self.assertEqual(jobs_response.status_code, 200, jobs_response.text)
+        jobs_payload = jobs_response.json()
+        self.assertEqual(len(jobs_payload), 1)
+        self.assertEqual(jobs_payload[0]["id"], transcribe_job["id"])
+
+        job_detail_response = self.client.get(f"/jobs/{transcribe_job['id']}")
+        self.assertEqual(job_detail_response.status_code, 200, job_detail_response.text)
+        self.assertEqual(job_detail_response.json()["project_id"], project["id"])
+
+        self._transcribe_project(project["id"])
+        with patch("app.api.projects.run_clip_generation_job", side_effect=lambda _job_id: None):
+            clip_job_response = self.client.post(f"/projects/{project['id']}/generate-clips/start")
+
+        self.assertEqual(clip_job_response.status_code, 202, clip_job_response.text)
+        clip_job = clip_job_response.json()
+        self.assertEqual(clip_job["job_type"], WorkflowJobType.generate_clips.value)
+        self.assertEqual(clip_job["status"], WorkflowJobStatus.queued.value)
+
+    def test_clip_job_endpoints_queue_export_and_publish_runs(self) -> None:
+        _project, clips = self._prepare_project_with_generated_clips()
+        clip_id = clips[0]["id"]
+
+        approve_response = self.client.post(f"/clips/{clip_id}/approve")
+        self.assertEqual(approve_response.status_code, 200, approve_response.text)
+
+        with patch("app.api.clips.run_export_job", side_effect=lambda _job_id: None):
+            export_job_response = self.client.post(f"/clips/{clip_id}/export/start")
+
+        self.assertEqual(export_job_response.status_code, 202, export_job_response.text)
+        export_job = export_job_response.json()
+        self.assertEqual(export_job["job_type"], WorkflowJobType.export.value)
+        self.assertEqual(export_job["status"], WorkflowJobStatus.queued.value)
+
+        clip_jobs_response = self.client.get(f"/clips/{clip_id}/jobs")
+        self.assertEqual(clip_jobs_response.status_code, 200, clip_jobs_response.text)
+        clip_jobs = clip_jobs_response.json()
+        self.assertEqual(len(clip_jobs), 1)
+        self.assertEqual(clip_jobs[0]["clip_candidate_id"], clip_id)
+
+        with patch(
+            "app.services.export_service.export_vertical_clip",
+            side_effect=self._fake_export_vertical_clip,
+        ), patch(
+            "app.services.export_service.extract_thumbnail",
+            side_effect=self._fake_extract_thumbnail,
+        ):
+            self.client.post(f"/clips/{clip_id}/export")
+
+        with patch("app.api.clips.run_publish_job", side_effect=lambda _job_id: None):
+            publish_job_response = self.client.post(f"/clips/{clip_id}/queue-publish/start", json={"platform": "youtube"})
+
+        self.assertEqual(publish_job_response.status_code, 202, publish_job_response.text)
+        publish_job = publish_job_response.json()
+        self.assertEqual(publish_job["job_type"], WorkflowJobType.publish.value)
+        self.assertEqual(publish_job["status"], WorkflowJobStatus.queued.value)

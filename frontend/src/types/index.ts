@@ -46,6 +46,25 @@ export type ExportRecord = {
   project_id?: number | null;
 };
 
+export type WorkflowJob = {
+  id: number;
+  project_id: number;
+  clip_candidate_id: number | null;
+  job_type: string;
+  status: string;
+  progress: number;
+  message: string | null;
+  error_detail: string | null;
+  payload_json: Record<string, unknown> | null;
+  result_json: Record<string, unknown> | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  project_title?: string | null;
+  clip_title?: string | null;
+};
+
 export type ClipCandidate = {
   id: number;
   project_id: number;

@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../components/ToastProvider";
-import type { ClipCandidate, Project } from "../types";
+import type { ClipCandidate, Project, WorkflowJob } from "../types";
 import { api } from "../api";
 import { ClipReviewPage } from "./ClipReviewPage";
 
@@ -22,8 +22,9 @@ vi.mock("../api", () => ({
   api: {
     getClip: vi.fn(),
     getProject: vi.fn(),
-    exportClip: vi.fn(),
-    queuePublish: vi.fn(),
+    listClipJobs: vi.fn(),
+    startClipExportJob: vi.fn(),
+    startClipPublishJob: vi.fn(),
     updateClip: vi.fn(),
     approveClip: vi.fn(),
     rejectClip: vi.fn(),
@@ -81,6 +82,26 @@ function makeClip(overrides: Partial<ClipCandidate> = {}): ClipCandidate {
   };
 }
 
+function makeJob(overrides: Partial<WorkflowJob> = {}): WorkflowJob {
+  return {
+    id: 50,
+    project_id: 1,
+    clip_candidate_id: 11,
+    job_type: "export",
+    status: "queued",
+    progress: 0,
+    message: "Queued",
+    error_detail: null,
+    payload_json: null,
+    result_json: { status: "queued" },
+    started_at: null,
+    completed_at: null,
+    created_at: "2026-04-20T00:00:00Z",
+    updated_at: "2026-04-20T00:00:00Z",
+    ...overrides,
+  };
+}
+
 function renderClipReview() {
   return render(
     <MemoryRouter initialEntries={["/clips/11"]}>
@@ -98,29 +119,39 @@ describe("ClipReviewPage", () => {
     navigateMock.mockReset();
     vi.mocked(api.getProject).mockReset();
     vi.mocked(api.getClip).mockReset();
-    vi.mocked(api.exportClip).mockReset();
-    vi.mocked(api.queuePublish).mockReset();
+    vi.mocked(api.listClipJobs).mockReset();
+    vi.mocked(api.startClipExportJob).mockReset();
+    vi.mocked(api.startClipPublishJob).mockReset();
     vi.mocked(api.updateClip).mockReset();
     vi.mocked(api.approveClip).mockReset();
     vi.mocked(api.rejectClip).mockReset();
   });
 
-  it("shows an inline export failure notice when export fails", async () => {
+  it("shows an inline queued notice when export starts in the background", async () => {
     const user = userEvent.setup();
     vi.mocked(api.getClip).mockResolvedValue(makeClip());
     vi.mocked(api.getProject).mockResolvedValue(makeProject());
-    vi.mocked(api.exportClip).mockRejectedValue(new Error("FFmpeg unavailable"));
+    vi.mocked(api.listClipJobs).mockResolvedValue([]);
+    vi.mocked(api.startClipExportJob).mockResolvedValue(
+      makeJob({
+        id: 77,
+        job_type: "export",
+        status: "queued",
+        message: "Vertical export has been queued",
+      }),
+    );
 
     renderClipReview();
 
     expect(await screen.findByText("Review test project")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Export 1080x1920/i }));
 
-    expect((await screen.findAllByText("Export failed")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/FFmpeg unavailable/i).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Export queued")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/background export has started/i).length).toBeGreaterThan(0);
+    expect(api.startClipExportJob).toHaveBeenCalledWith(11);
   });
 
-  it("queues publish and navigates to the publish page when the clip already has an export", async () => {
+  it("queues publish through the background job endpoint when an export exists", async () => {
     const user = userEvent.setup();
     vi.mocked(api.getClip).mockResolvedValue(
       makeClip({
@@ -141,7 +172,16 @@ describe("ClipReviewPage", () => {
       }),
     );
     vi.mocked(api.getProject).mockResolvedValue(makeProject());
-    vi.mocked(api.queuePublish).mockResolvedValue({ id: 1, status: "queued" } as never);
+    vi.mocked(api.listClipJobs).mockResolvedValue([]);
+    vi.mocked(api.startClipPublishJob).mockResolvedValue(
+      makeJob({
+        id: 88,
+        job_type: "publish",
+        status: "queued",
+        payload_json: { platform: "youtube" },
+        message: "Mock publish for youtube has been queued",
+      }),
+    );
 
     renderClipReview();
 
@@ -149,8 +189,8 @@ describe("ClipReviewPage", () => {
     await user.click(screen.getByRole("button", { name: /Queue youtube/i }));
 
     await waitFor(() => {
-      expect(api.queuePublish).toHaveBeenCalledWith(11, "youtube");
-      expect(navigateMock).toHaveBeenCalledWith("/publish");
+      expect(api.startClipPublishJob).toHaveBeenCalledWith(11, "youtube");
     });
+    expect((await screen.findAllByText("Publish queued")).length).toBeGreaterThan(0);
   });
 });
