@@ -6,50 +6,50 @@ This preview was generated locally with the current heuristic clip scorer and co
 
 ## Candidate 1
 - Start: 20.2s
-- End: 46.0s
-- Duration: 25.8s
-- Score: 71.2
-- Hook: Now look at round three again, because the same setup appears twice before the finish and nobody notices it in...
-- Title: The exact moment the fight flipped | Knockout
-- Description: If you are breaking down this knockout, the key is not the last punch, it is the first fake that wins the angle. This cut isolates the decisive exchange and the finish that made the moment explode.
-- Hashtags: #shorts #mma #combatSports #fightBreakdown #knockout #breaking #punch #fake
+- End: 40.3s
+- Duration: 20.1s
+- Score: 78.0
+- Hook: 이 장면이 진짜 레전드다
+- Title: 가드 열리는 순간 바로 끝났다 | Knockout
+- Description: If you are breaking down this knockout, the key is not the last punch, it is the first fake that wins the angle. 결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다.
+- Hashtags: #숏츠 #복싱 #격투기 #shorts #boxing #fight #knockout #breaking
 
 ## Candidate 2
 - Start: 40.8s
 - End: 62.0s
 - Duration: 21.2s
-- Score: 66.6
-- Hook: That is why the corner is screaming at him to circle off, but he stays planted and the counter right hand clip...
-- Title: The exact moment the fight flipped | Corner
-- Description: That is why the corner is screaming at him to circle off, but he stays planted and the counter right hand clips him again. This cut isolates the decisive exchange and the finish that made the moment explode.
-- Hashtags: #shorts #mma #combatSports #fightBreakdown #knockout #corner #screaming #circle
+- Score: 76.6
+- Hook: 이 장면이 진짜 레전드다
+- Title: 가드 열리는 순간 바로 끝났다 | Corner
+- Description: That is why the corner is screaming at him to circle off, but he stays planted and the counter right hand clips him again. 결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다.
+- Hashtags: #숏츠 #복싱 #격투기 #shorts #boxing #fight #knockout #corner
 
 ## Candidate 3
 - Start: 15.2s
-- End: 35.2s
-- Duration: 20.0s
-- Score: 66.2
-- Hook: If you are breaking down this knockout, the key is not the last punch, it is the first fake that wins the angl...
-- Title: The exact moment the fight flipped | Referee
-- Description: That is why the referee steps in fast, because the counter lands before the champion can recover his feet. This cut isolates the decisive exchange and the finish that made the moment explode.
-- Hashtags: #shorts #mma #combatSports #fightBreakdown #knockout #referee #steps #counter
+- End: 30.1s
+- Duration: 14.9s
+- Score: 74.3
+- Hook: 이 장면이 진짜 레전드다
+- Title: 가드 열리는 순간 바로 끝났다 | Referee
+- Description: That is why the referee steps in fast, because the counter lands before the champion can recover his feet. 결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다.
+- Hashtags: #숏츠 #복싱 #격투기 #shorts #boxing #fight #knockout #referee
 
 ## Candidate 4
-- Start: 25.3s
-- End: 56.6s
-- Duration: 31.3s
-- Score: 64.0
-- Hook: Now look at round three again, because the same setup appears twice before the finish and nobody notices it in...
-- Title: The exact moment the fight flipped | Round
-- Description: Now look at round three again, because the same setup appears twice before the finish and nobody notices it in real time. This cut isolates the decisive exchange and the finish that made the moment explode.
-- Hashtags: #shorts #mma #combatSports #fightBreakdown #knockout #round #three #setup
+- Start: 30.4s
+- End: 51.2s
+- Duration: 20.8s
+- Score: 71.0
+- Hook: 이 장면이 진짜 레전드다
+- Title: 가드 열리는 순간 바로 끝났다 | Pressure
+- Description: This is the mistake fighters make against pressure strikers, they back straight up and give away the cage line. 결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다.
+- Hashtags: #숏츠 #복싱 #격투기 #shorts #boxing #fight #knockout #mistake
 
 ## Candidate 5
-- Start: 5.1s
-- End: 30.1s
-- Duration: 25.0s
-- Score: 57.6
-- Hook: The jab freezes him, the level change pulls the guard down, and the left hook lands clean on the exit.
-- Title: The exact moment the fight flipped | Jab
-- Description: The jab freezes him, the level change pulls the guard down, and the left hook lands clean on the exit. This cut isolates the decisive exchange and the finish that made the moment explode.
-- Hashtags: #shorts #mma #combatSports #fightBreakdown #knockout #freezes #level #change
+- Start: 40.8s
+- End: 51.2s
+- Duration: 10.4s
+- Score: 66.8
+- Hook: 이 장면이 진짜 레전드다
+- Title: 가드 열리는 순간 바로 끝났다 | Corner
+- Description: That is why the corner is screaming at him to circle off, but he stays planted and the counter right hand clips him again. 결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다.
+- Hashtags: #숏츠 #복싱 #격투기 #shorts #boxing #fight #knockout #corner

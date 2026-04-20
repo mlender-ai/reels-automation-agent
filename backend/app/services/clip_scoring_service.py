@@ -127,6 +127,23 @@ def _combat_sports_signal(window_text: str, opening_text: str) -> float:
     return finish_score + analysis_score + early_impact_score + name_like_score
 
 
+def _combat_sports_finish_payoff(window_segments: list[dict]) -> float:
+    if not window_segments:
+        return 0.0
+    final_span = max(1, min(2, len(window_segments)))
+    final_text = " ".join(segment["text"] for segment in window_segments[-final_span:]).lower()
+    payoff_terms = COMBAT_SPORTS_FINISH_TERMS.union({"wave-off", "finish", "dropped", "rocked", "hurt", "끝", "마무리"})
+    payoff_hits = sum(1 for term in payoff_terms if term in final_text)
+    return payoff_hits * 2.8
+
+
+def _combat_sports_opening_burst(window_segments: list[dict]) -> float:
+    opening_text = " ".join(segment["text"] for segment in window_segments[:2]).lower()
+    opening_terms = COMBAT_SPORTS_FINISH_TERMS.union({"watch", "look", "exact", "moment", "여기", "바로", "이 장면"})
+    opening_hits = sum(1 for term in opening_terms if term in opening_text)
+    return opening_hits * 2.4
+
+
 def score_candidate_window(
     segments: list[dict],
     start_index: int,
@@ -165,8 +182,24 @@ def score_candidate_window(
     combat_penalty = 0.0
     if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration > 34:
         combat_penalty += (duration - 34) * 1.5
+    combat_finish_score = _combat_sports_finish_payoff(window_segments) if content_profile == CONTENT_PROFILE_COMBAT_SPORTS else 0.0
+    combat_opening_score = _combat_sports_opening_burst(window_segments) if content_profile == CONTENT_PROFILE_COMBAT_SPORTS else 0.0
+    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration > 22:
+        combat_penalty += (duration - 22) * 1.4
+    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration < 9:
+        combat_penalty += (9 - duration) * 3.5
 
-    score = duration_score + density_score + hook_score + emotion_score + comparison_score + list_score + combat_signal
+    score = (
+        duration_score
+        + density_score
+        + hook_score
+        + emotion_score
+        + comparison_score
+        + list_score
+        + combat_signal
+        + combat_finish_score
+        + combat_opening_score
+    )
     score -= gap_penalty + start_penalty + end_penalty + filler_penalty + mid_sentence_penalty + density_penalty + combat_penalty
     return round(max(score, 0.0), 3)
 
@@ -178,9 +211,9 @@ def _iter_candidate_windows(segments: list[dict], content_profile: str) -> list[
     minimum_duration = 20
     maximum_duration = 45
     if content_profile == CONTENT_PROFILE_COMBAT_SPORTS:
-        preferred_targets = [12, 15, 18, 21, 24, 28, 32]
-        minimum_duration = 12
-        maximum_duration = 38
+        preferred_targets = [9, 11, 13, 15, 18, 21]
+        minimum_duration = 9
+        maximum_duration = 24
     fallback_targets = [16, 18] if total_runtime <= 24 else []
     for start_index, segment in enumerate(segments):
         start_time = float(segment["start"])
@@ -232,10 +265,10 @@ def _deduplicate(windows: list[CandidateWindow]) -> list[CandidateWindow]:
     return selected
 
 
-def _build_candidates(windows: list[CandidateWindow]) -> list[CandidateWindow]:
+def _build_candidates(windows: list[CandidateWindow], content_profile: str) -> list[CandidateWindow]:
     for window in windows:
         window_text = _window_text(window.segments)
-        metadata = DEFAULT_METADATA_GENERATOR.generate(window.segments, window_text)
+        metadata = DEFAULT_METADATA_GENERATOR.generate(window.segments, window_text, content_profile=content_profile)
         window.hook_text = metadata.hook_text
         window.suggested_title = metadata.suggested_title
         window.suggested_description = metadata.suggested_description
@@ -257,7 +290,7 @@ def generate_ranked_candidate_windows(raw_segments: list[dict], content_profile:
     if not windows:
         raise HTTPException(status_code=422, detail="Transcript does not contain enough speech to produce clip candidates")
 
-    top_windows = _build_candidates(windows)
+    top_windows = _build_candidates(windows, resolved_profile)
     if not top_windows:
         raise HTTPException(status_code=422, detail="Unable to score useful clip candidates from the transcript")
 
