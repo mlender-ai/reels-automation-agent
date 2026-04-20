@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "./layouts/AppShell";
 import { CandidateClipsPage } from "./pages/CandidateClipsPage";
 import { ClipReviewPage } from "./pages/ClipReviewPage";
+import { ConceptLabPage } from "./pages/ConceptLabPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ExportsPage } from "./pages/ExportsPage";
 import { NewProjectPage } from "./pages/NewProjectPage";
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/projects/:projectId/clips" element={<CandidateClipsPage />} />
         <Route path="/clips/:clipId" element={<ClipReviewPage />} />
         <Route path="/exports" element={<ExportsPage />} />
+        <Route path="/concepts" element={<ConceptLabPage />} />
         <Route path="/publish" element={<PublishQueuePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

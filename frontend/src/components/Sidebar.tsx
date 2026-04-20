@@ -1,9 +1,10 @@
-import { BarChart3, FolderPlus, FolderKanban, Clapperboard, Send } from "lucide-react";
+import { BarChart3, FolderPlus, FolderKanban, Clapperboard, Palette, Send } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
   { label: "대시보드", to: "/", icon: BarChart3 },
   { label: "새 프로젝트", to: "/projects/new", icon: FolderPlus },
+  { label: "컨셉 비교", to: "/concepts", icon: Palette },
   { label: "내보내기", to: "/exports", icon: Clapperboard },
   { label: "게시 큐", to: "/publish", icon: Send },
 ];
