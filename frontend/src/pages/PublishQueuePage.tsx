@@ -19,6 +19,7 @@ export function PublishQueuePage() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
+  const [actionNotice, setActionNotice] = useState<{ tone: "error" | "success" | "info"; title: string; description: string } | null>(null);
   const { pushToast } = useToast();
 
   async function load() {
@@ -50,16 +51,54 @@ export function PublishQueuePage() {
 
   async function handleQueue() {
     if (!selectedClipId) {
+      setActionNotice({ tone: "error", title: "클립이 선택되지 않았습니다", description: "게시 큐에 넣기 전에 내보낸 클립을 선택해 주세요." });
       pushToast({ tone: "error", title: "클립이 선택되지 않았습니다", description: "게시 큐에 넣기 전에 내보낸 클립을 선택해 주세요." });
       return;
     }
     try {
       setSubmitting(true);
+      setActionNotice(null);
       await api.queuePublish(selectedClipId, platform);
       await load();
+      setActionNotice({
+        tone: "success",
+        title: "게시 큐에 등록되었습니다",
+        description: `모의 ${platform} 어댑터가 선택한 클립을 받았습니다.`,
+      });
       pushToast({ tone: "success", title: "게시 큐에 등록되었습니다", description: `모의 ${platform} 어댑터가 선택한 클립을 받았습니다.` });
     } catch (error) {
-      pushToast({ tone: "error", title: "게시 큐 등록에 실패했습니다", description: (error as Error).message });
+      const message = (error as Error).message;
+      setActionNotice({
+        tone: "error",
+        title: "게시 큐 등록에 실패했습니다",
+        description: `${message} 익스포트가 세로형인지, 썸네일과 메타데이터가 모두 있는지 확인한 뒤 다시 시도해 주세요.`,
+      });
+      pushToast({ tone: "error", title: "게시 큐 등록에 실패했습니다", description: message });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRetry(jobClipId: number, jobPlatform: string) {
+    try {
+      setSubmitting(true);
+      setActionNotice(null);
+      await api.queuePublish(jobClipId, jobPlatform);
+      await load();
+      setActionNotice({
+        tone: "info",
+        title: "실패한 게시 작업을 다시 등록했습니다",
+        description: `모의 ${jobPlatform} 어댑터에 동일한 클립을 다시 넣었습니다.`,
+      });
+      pushToast({ tone: "success", title: "게시 작업을 다시 등록했습니다", description: `모의 ${jobPlatform} 어댑터에 재시도 요청을 보냈습니다.` });
+    } catch (error) {
+      const message = (error as Error).message;
+      setActionNotice({
+        tone: "error",
+        title: "게시 작업 재시도에 실패했습니다",
+        description: `${message} 내보내기 파일과 메타데이터를 다시 확인해 주세요.`,
+      });
+      pushToast({ tone: "error", title: "게시 작업 재시도에 실패했습니다", description: message });
     } finally {
       setSubmitting(false);
     }
@@ -132,6 +171,21 @@ export function PublishQueuePage() {
           >
             {submitting ? "등록 중..." : "게시 작업 등록"}
           </button>
+
+          {actionNotice ? (
+            <div
+              className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+                actionNotice.tone === "error"
+                  ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
+                  : actionNotice.tone === "success"
+                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                    : "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"
+              }`}
+            >
+              <p className="font-semibold">{actionNotice.title}</p>
+              <p className="mt-2 leading-6 text-white/85">{actionNotice.description}</p>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
@@ -158,6 +212,18 @@ export function PublishQueuePage() {
                         : job.status === "failed"
                           ? `실패 사유: ${String(job.result_json.error ?? "mock publish failure")}`
                           : "모의 어댑터 완료를 기다리는 중"}
+                    </div>
+                  ) : null}
+                  {job.status === "failed" ? (
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void handleRetry(job.clip_candidate_id, job.platform)}
+                        disabled={submitting}
+                        className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-3 py-2 text-xs font-medium text-rose-100 transition hover:bg-rose-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        같은 조건으로 다시 등록
+                      </button>
                     </div>
                   ) : null}
                 </div>

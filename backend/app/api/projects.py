@@ -19,6 +19,7 @@ from app.services.project_service import (
 )
 from app.services.serializers import serialize_clip, serialize_project, serialize_source_video, serialize_transcript, serialize_workflow_job
 from app.services.transcription_service import transcribe_project
+from app.services.validation_service import ensure_source_video_duration
 from app.services.workflow_job_service import create_workflow_job, list_project_jobs
 from app.workers.workflow_worker import run_clip_generation_job, run_transcription_job
 
@@ -97,8 +98,12 @@ def get_transcript_endpoint(project_id: int, db: Session = Depends(get_db)) -> d
 def generate_clips_endpoint(project_id: int, db: Session = Depends(get_db)) -> list[dict]:
     project = get_project_or_404(db, project_id)
     transcript = latest_transcript(project)
+    source_video = latest_source_video(project)
     if not transcript:
         raise HTTPException(status_code=400, detail="Generate a transcript before generating clips")
+    if not source_video:
+        raise HTTPException(status_code=400, detail="Project has no uploaded source video")
+    ensure_source_video_duration(source_video.duration_seconds)
     clips = generate_clip_candidates(db, project, transcript)
     refreshed_project = get_project_or_404(db, project_id)
     return [serialize_clip(clip) for clip in refreshed_project.clip_candidates[: len(clips)]]
@@ -112,8 +117,12 @@ def start_generate_clips_endpoint(
 ) -> dict:
     project = get_project_or_404(db, project_id)
     transcript = latest_transcript(project)
+    source_video = latest_source_video(project)
     if not transcript:
         raise HTTPException(status_code=400, detail="Generate a transcript before generating clips")
+    if not source_video:
+        raise HTTPException(status_code=400, detail="Project has no uploaded source video")
+    ensure_source_video_duration(source_video.duration_seconds)
     job = create_workflow_job(
         db,
         project=project,

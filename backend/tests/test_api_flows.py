@@ -104,7 +104,10 @@ class ApiFlowTests(unittest.TestCase):
         return response.json()
 
     def _transcribe_project(self, project_id: int) -> dict:
-        with patch("app.services.transcription_service._get_whisper_model", return_value=DummyWhisperModel()):
+        with patch("app.services.transcription_service._get_whisper_model", return_value=DummyWhisperModel()), patch(
+            "app.services.transcription_service.probe_video",
+            return_value={"duration_seconds": 120.0, "width": 1920, "height": 1080, "fps": 30.0},
+        ):
             response = self.client.post(f"/projects/{project_id}/transcribe")
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
@@ -162,7 +165,9 @@ class ApiFlowTests(unittest.TestCase):
         self.assertTrue(resolve_data_path(export_payload["subtitle_path"]).exists())
         self.assertTrue(resolve_data_path(export_payload["thumbnail_path"]).exists())
 
-        with patch("app.api.clips.simulate_publish_job", side_effect=lambda _job_id: None):
+        with patch("app.services.publish_service.probe_video", return_value={"duration_seconds": 20.0, "width": 1080, "height": 1920, "fps": 30.0}), patch(
+            "app.api.clips.simulate_publish_job", side_effect=lambda _job_id: None
+        ):
             publish_response = self.client.post(f"/clips/{clip_id}/queue-publish", json={"platform": "youtube"})
 
         self.assertEqual(publish_response.status_code, 200, publish_response.text)
@@ -199,6 +204,23 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Generate a transcript", response.json()["detail"])
 
+    def test_generate_clips_rejects_source_video_that_is_too_short(self) -> None:
+        project = self._create_project("Short source")
+        with patch(
+            "app.services.project_service.probe_video",
+            return_value={"duration_seconds": 5.0, "width": 1080, "height": 1920, "fps": 30.0},
+        ):
+            response = self.client.post(
+                f"/projects/{project['id']}/upload",
+                files={"file": ("short.mp4", b"fake video bytes", "video/mp4")},
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+
+        self._transcribe_project(project["id"])
+        response = self.client.post(f"/projects/{project['id']}/generate-clips")
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("at least", response.json()["detail"])
+
     def test_export_requires_approved_clip(self) -> None:
         _project, clips = self._prepare_project_with_generated_clips()
         response = self.client.post(f"/clips/{clips[0]['id']}/export")
@@ -213,6 +235,27 @@ class ApiFlowTests(unittest.TestCase):
         response = self.client.post(f"/clips/{clips[0]['id']}/queue-publish", json={"platform": "youtube"})
         self.assertEqual(response.status_code, 400)
         self.assertIn("Export the clip", response.json()["detail"])
+
+    def test_queue_publish_rejects_non_vertical_export(self) -> None:
+        _project, clips = self._prepare_project_with_generated_clips()
+        clip_id = clips[0]["id"]
+        approve_response = self.client.post(f"/clips/{clip_id}/approve")
+        self.assertEqual(approve_response.status_code, 200, approve_response.text)
+
+        with patch(
+            "app.services.export_service.export_vertical_clip",
+            side_effect=self._fake_export_vertical_clip,
+        ), patch(
+            "app.services.export_service.extract_thumbnail",
+            side_effect=self._fake_extract_thumbnail,
+        ):
+            export_response = self.client.post(f"/clips/{clip_id}/export")
+        self.assertEqual(export_response.status_code, 200, export_response.text)
+
+        with patch("app.services.publish_service.probe_video", return_value={"duration_seconds": 20.0, "width": 1920, "height": 1080, "fps": 30.0}):
+            response = self.client.post(f"/clips/{clip_id}/queue-publish", json={"platform": "youtube"})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("vertical", response.json()["detail"])
 
     def test_project_job_endpoints_queue_and_list_background_runs(self) -> None:
         project = self._create_project()

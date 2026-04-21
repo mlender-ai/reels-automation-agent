@@ -94,6 +94,8 @@ export function CandidateClipsPage() {
     return <EmptyState title="프로젝트를 찾을 수 없습니다" description="이 프로젝트를 찾지 못했습니다." />;
   }
 
+  const rejectedOnly = clips.length > 0 && clips.every((clip) => clip.status === "rejected");
+
   return (
     <div className="space-y-8">
       <section className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-white/[0.04] p-6 md:flex-row md:items-center md:justify-between">
@@ -104,6 +106,11 @@ export function CandidateClipsPage() {
             후보 {clips.length}개 · 대기 {clips.filter((clip) => clip.status === "pending").length}개 ·{" "}
             승인/내보내기 {clips.filter((clip) => clip.status === "approved" || clip.status === "exported").length}개
           </p>
+          {rejectedOnly ? (
+            <p className="mt-3 text-sm leading-6 text-amber-100/85">
+              현재 후보가 모두 반려되었습니다. 자막을 다시 생성하거나 후보 생성을 새로 실행해 새 검토 큐를 만드는 편이 좋습니다.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-3">
           <Link
@@ -127,6 +134,23 @@ export function CandidateClipsPage() {
         >
           <p className="font-semibold">{actionNotice.title}</p>
           <p className="mt-2 leading-6 text-white/85">{actionNotice.description}</p>
+        </section>
+      ) : null}
+
+      {rejectedOnly ? (
+        <section className="rounded-3xl border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm text-amber-50">
+          <p className="font-semibold">검토 가능한 후보가 현재 없습니다</p>
+          <p className="mt-2 leading-6 text-white/85">
+            반려된 후보는 기록용으로 남아 있지만 지금은 승인하거나 내보낼 수 없습니다. 프로젝트 상세로 돌아가 자막이나 후보 생성을 다시 실행해 보세요.
+          </p>
+          <div className="mt-4">
+            <Link
+              to={`/projects/${project.id}`}
+              className="inline-flex rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15"
+            >
+              프로젝트 상세로 이동
+            </Link>
+          </div>
         </section>
       ) : null}
 

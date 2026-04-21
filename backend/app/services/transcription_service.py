@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from app.core.logging import get_logger
 from app.models.project import Project
 from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
+from app.services.ffmpeg_service import probe_video
 from app.utils.paths import project_transcripts_dir, resolve_data_path, to_relative_data_path
 
 try:
@@ -77,6 +79,14 @@ def transcribe_project(db: Session, project: Project, source_video: SourceVideo)
         source_path = resolve_data_path(source_video.stored_path)
         if not source_path.exists():
             raise HTTPException(status_code=404, detail="Source video file is missing on disk")
+        if Path(source_path).stat().st_size <= 0:
+            raise HTTPException(status_code=400, detail="Source video file is empty. Upload a valid local video before transcription.")
+        metadata = probe_video(source_path)
+        if not metadata.get("duration_seconds") or float(metadata["duration_seconds"] or 0) <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Source video could not be decoded for transcription. Re-export the file locally and try again.",
+            )
         logger.info(
             "Starting transcription. project_id=%s source_path=%s model=%s device=%s",
             project.id,

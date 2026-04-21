@@ -20,6 +20,17 @@ MIN_CLIP_DURATION_SECONDS = 8.0
 MAX_CLIP_DURATION_SECONDS = 45.0
 
 
+def ensure_source_video_duration(duration_seconds: float | None) -> float:
+    if duration_seconds is None or duration_seconds <= 0:
+        raise HTTPException(status_code=422, detail="Source video duration could not be determined for clip generation")
+    if duration_seconds < MIN_CLIP_DURATION_SECONDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Source video must be at least {MIN_CLIP_DURATION_SECONDS:.0f} seconds long before generating clips",
+        )
+    return duration_seconds
+
+
 def validate_video_upload(filename: str, content_type: str | None, size_bytes: int) -> None:
     suffix = Path(filename).suffix.lower()
     if suffix not in ALLOWED_VIDEO_EXTENSIONS:

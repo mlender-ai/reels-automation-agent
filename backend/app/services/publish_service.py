@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.constants import PublishStatus
 from app.models.clip_candidate import ClipCandidate
 from app.models.publish_job import PublishJob
+from app.services.ffmpeg_service import probe_video
 from app.utils.paths import resolve_data_path
 
 
@@ -78,12 +79,6 @@ def _validate_publishable_clip(clip: ClipCandidate, platform: str) -> tuple[Publ
         raise HTTPException(status_code=400, detail="Export the clip before adding it to the publish queue")
     if not latest_export.output_path or not resolve_data_path(latest_export.output_path).exists():
         raise HTTPException(status_code=400, detail="The exported video file is missing on disk. Run export again before queueing publish.")
-    if not clip.suggested_title.strip() or not clip.suggested_description.strip() or not clip.suggested_hashtags.strip():
-        raise HTTPException(
-            status_code=422,
-            detail="Complete the clip title, description, and hashtags before queueing publish.",
-        )
-
     for job in getattr(clip, "publish_jobs", []):
         if job.platform != platform:
             continue
@@ -92,12 +87,38 @@ def _validate_publishable_clip(clip: ClipCandidate, platform: str) -> tuple[Publ
         if job.status == PublishStatus.posted.value:
             raise HTTPException(status_code=409, detail=f"This clip has already been posted to {platform} in the mock publish queue")
 
+    export_path = resolve_data_path(latest_export.output_path)
+    try:
+        metadata = probe_video(export_path)
+    except HTTPException as exc:
+        raise HTTPException(status_code=422, detail="The exported video could not be validated. Re-run export before queueing publish.") from exc
+    width = int(metadata.get("width") or 0)
+    height = int(metadata.get("height") or 0)
+    duration_seconds = float(metadata.get("duration_seconds") or 0)
+    if width <= 0 or height <= 0 or duration_seconds <= 0:
+        raise HTTPException(status_code=422, detail="The exported video could not be validated. Re-run export before queueing publish.")
+    if height <= width:
+        raise HTTPException(status_code=422, detail="Only vertical 9:16-style exports can be queued for publish.")
+    if abs((width / height) - (1080 / 1920)) > 0.05:
+        raise HTTPException(status_code=422, detail="The exported video ratio is not close enough to 9:16 for publish.")
+    if not latest_export.thumbnail_path or not resolve_data_path(latest_export.thumbnail_path).exists():
+        raise HTTPException(status_code=422, detail="The export is missing a thumbnail asset. Re-run export before queueing publish.")
+    if not clip.suggested_title.strip() or not clip.suggested_description.strip() or not clip.suggested_hashtags.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Complete the clip title, description, and hashtags before queueing publish.",
+        )
+
     return adapter, latest_export
 
 
 def create_publish_job(db: Session, clip: ClipCandidate, platform: str) -> PublishJob:
     adapter, latest_export = _validate_publishable_clip(clip, platform)
     validation = adapter.validate_account()
+    try:
+        export_metadata = probe_video(resolve_data_path(latest_export.output_path))
+    except HTTPException as exc:
+        raise HTTPException(status_code=422, detail="The exported video could not be validated. Re-run export before queueing publish.") from exc
     payload = {
         "clip": {
             "id": clip.id,
@@ -110,6 +131,9 @@ def create_publish_job(db: Session, clip: ClipCandidate, platform: str) -> Publi
             "export_path": latest_export.output_path,
             "thumbnail_path": latest_export.thumbnail_path,
             "subtitle_path": latest_export.subtitle_path,
+            "duration_seconds": export_metadata.get("duration_seconds"),
+            "width": export_metadata.get("width"),
+            "height": export_metadata.get("height"),
         },
         "platform": platform,
         "adapter": adapter.adapter_name,
@@ -126,6 +150,12 @@ def create_publish_job(db: Session, clip: ClipCandidate, platform: str) -> Publi
             "queued": True,
             "account_label": validation["account_label"],
             "connected": validation["connected"],
+            "retryable": True,
+            "preflight": {
+                "vertical": True,
+                "thumbnail_present": True,
+                "metadata_complete": True,
+            },
         },
     )
     db.add(publish_job)

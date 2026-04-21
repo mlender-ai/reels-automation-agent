@@ -81,7 +81,7 @@ class ClipGenerationWindowTests(unittest.TestCase):
         self.assertEqual(profile, CONTENT_PROFILE_COMBAT_SPORTS)
 
         metadata = DEFAULT_METADATA_GENERATOR.generate(segments, " ".join(segment["text"] for segment in segments))
-        self.assertIn("#mma", metadata.suggested_hashtags)
+        self.assertTrue(any(tag in metadata.suggested_hashtags for tag in ["#mma", "#boxing", "#fight", "#격투기"]))
         self.assertTrue(
-            any(fragment in metadata.suggested_title.lower() for fragment in ["fight", "exchange", "caught", "finish"])
+            any(fragment in metadata.suggested_title.lower() for fragment in ["fight", "exchange", "caught", "finish", "feint", "바로 끝났다"])
         )

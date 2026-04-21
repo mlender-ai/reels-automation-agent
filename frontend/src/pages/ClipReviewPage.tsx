@@ -78,6 +78,14 @@ export function ClipReviewPage() {
     () => relevantJobs.find((job) => job.job_type === "publish" && ACTIVE_JOB_STATUSES.has(job.status)) ?? null,
     [relevantJobs],
   );
+  const latestFailedExportJob = useMemo(
+    () => relevantJobs.find((job) => job.job_type === "export" && job.status === "failed") ?? null,
+    [relevantJobs],
+  );
+  const latestFailedPublishJob = useMemo(
+    () => relevantJobs.find((job) => job.job_type === "publish" && job.status === "failed") ?? null,
+    [relevantJobs],
+  );
 
   async function load(options: { silent?: boolean } = {}) {
     if (!clipId) return;
@@ -408,6 +416,23 @@ export function ClipReviewPage() {
               </a>
             </div>
           ) : null}
+
+          {latestFailedExportJob ? (
+            <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-4 text-sm text-rose-100">
+              <p className="font-semibold">최근 내보내기 작업이 실패했습니다</p>
+              <p className="mt-2 leading-6 text-white/85">
+                {latestFailedExportJob.error_detail ?? "FFmpeg나 원본 파일 상태를 확인한 뒤 다시 내보내기를 시도해 주세요."}
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                disabled={Boolean(activeExportJob) || Boolean(validationError)}
+                className="mt-4 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                내보내기 다시 시도
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
@@ -521,6 +546,15 @@ export function ClipReviewPage() {
             >
               <p className="font-semibold">{actionNotice.title}</p>
               <p className="mt-2 leading-6 text-white/85">{actionNotice.description}</p>
+            </div>
+          ) : null}
+
+          {latestFailedPublishJob ? (
+            <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+              <p className="font-semibold">최근 게시 큐 등록이 실패했습니다</p>
+              <p className="mt-2 leading-6 text-white/85">
+                {latestFailedPublishJob.error_detail ?? "메타데이터와 최신 export 자산을 점검한 뒤 다시 게시 큐에 넣어 주세요."}
+              </p>
             </div>
           ) : null}
 

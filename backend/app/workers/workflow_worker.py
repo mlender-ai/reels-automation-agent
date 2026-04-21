@@ -16,6 +16,7 @@ from app.services.export_service import export_clip
 from app.services.project_service import latest_source_video, latest_transcript
 from app.services.publish_service import create_publish_job
 from app.services.transcription_service import transcribe_project
+from app.services.validation_service import ensure_source_video_duration
 from app.services.workflow_job_service import get_workflow_job_or_404, update_workflow_job
 from app.workers.publish_worker import simulate_publish_job
 
@@ -115,8 +116,12 @@ def run_clip_generation_job(job_id: int) -> None:
             job = get_workflow_job_or_404(db, job_id)
             project = job.project
             transcript = latest_transcript(project)
+            source_video = latest_source_video(project)
             if not transcript:
                 raise HTTPException(status_code=400, detail="Generate a transcript before generating clips")
+            if not source_video:
+                raise HTTPException(status_code=400, detail="Project has no uploaded source video")
+            ensure_source_video_duration(source_video.duration_seconds)
             clips = generate_clip_candidates(db, project, transcript)
             update_workflow_job(
                 db,
