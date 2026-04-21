@@ -9,6 +9,7 @@ import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { useToast } from "../hooks/useToast";
 import type { ClipCandidate, Project } from "../types";
+import { formatDuration, formatScore } from "../lib/formatters";
 
 export function CandidateClipsPage() {
   const { projectId } = useParams();
@@ -95,6 +96,14 @@ export function CandidateClipsPage() {
   }
 
   const rejectedOnly = clips.length > 0 && clips.every((clip) => clip.status === "rejected");
+  const bestClip = [...clips].sort((left, right) => right.score - left.score)[0] ?? null;
+  const averageScore = clips.length ? clips.reduce((sum, clip) => sum + clip.score, 0) / clips.length : 0;
+  const sourceDuration = project.source_video?.duration_seconds ?? null;
+  const formatSummary = clips.reduce<Record<string, number>>((summary, clip) => {
+    const key = clip.recommended_format ?? "기본형";
+    summary[key] = (summary[key] ?? 0) + 1;
+    return summary;
+  }, {});
 
   return (
     <div className="space-y-8">
@@ -106,6 +115,12 @@ export function CandidateClipsPage() {
             후보 {clips.length}개 · 대기 {clips.filter((clip) => clip.status === "pending").length}개 ·{" "}
             승인/내보내기 {clips.filter((clip) => clip.status === "approved" || clip.status === "exported").length}개
           </p>
+          {sourceDuration ? (
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              원본 {formatDuration(sourceDuration)}를 분석해 상위 {clips.length || 5}개 후보를 우선 검토용으로 정렬했습니다. 긴 영상일수록 초반 훅, 완결감,
+              타임라인 분산을 같이 보며 추천합니다.
+            </p>
+          ) : null}
           {rejectedOnly ? (
             <p className="mt-3 text-sm leading-6 text-amber-100/85">
               현재 후보가 모두 반려되었습니다. 자막을 다시 생성하거나 후보 생성을 새로 실행해 새 검토 큐를 만드는 편이 좋습니다.
@@ -121,6 +136,36 @@ export function CandidateClipsPage() {
           </Link>
         </div>
       </section>
+
+      {clips.length ? (
+        <section className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.08] p-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/75">자동 숏츠 분석 결과</p>
+            <p className="mt-3 text-lg font-semibold text-white">
+              {bestClip ? `가장 강한 후보는 점수 ${formatScore(bestClip.score)} · ${bestClip.recommended_format ?? "기본 포맷"}` : "분석 결과를 불러오는 중"}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-cyan-50/85">
+              현재 후보들은 조회수 가능성, 초반 훅, 길이 완결감, 격투기/설명형 문맥을 함께 반영해 추천 순으로 정렬되어 있습니다.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">추천 요약</p>
+              <span className="rounded-full bg-white/8 px-3 py-1 text-xs text-slate-200">평균 점수 {formatScore(averageScore)}</span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {Object.entries(formatSummary).map(([label, count]) => (
+                <span key={label} className="rounded-full bg-white/6 px-3 py-1.5 text-xs font-medium text-slate-200">
+                  {label} {count}개
+                </span>
+              ))}
+            </div>
+            {bestClip?.selection_reason ? (
+              <p className="mt-4 text-sm leading-6 text-slate-300">{bestClip.selection_reason}</p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {actionNotice ? (
         <section

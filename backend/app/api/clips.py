@@ -54,7 +54,11 @@ def list_all_clips_endpoint(
     statuses: str | None = Query(default=None, description="Comma separated clip statuses"),
     db: Session = Depends(get_db),
 ) -> list[dict]:
-    statement = select(ClipCandidate).options(selectinload(ClipCandidate.exports)).order_by(ClipCandidate.created_at.desc())
+    statement = (
+        select(ClipCandidate)
+        .options(selectinload(ClipCandidate.exports), selectinload(ClipCandidate.project).selectinload(Project.source_videos))
+        .order_by(ClipCandidate.created_at.desc())
+    )
     if statuses:
         allowed = [status.strip() for status in statuses.split(",") if status.strip()]
         if allowed:

@@ -13,6 +13,7 @@ type ClipCardProps = {
 };
 
 export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCardProps) {
+  const primarySignals = (clip.selection_signals ?? []).slice(0, 2);
   return (
     <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] shadow-panel">
       <Link
@@ -24,6 +25,9 @@ export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCar
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-cyan-100">{formatDuration(clip.duration)}</span>
             <span className="rounded-full bg-cyan-300/15 px-3 py-1 text-xs font-semibold text-cyan-100">점수 {formatScore(clip.score)}</span>
+            {clip.recommended_format ? (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90">{clip.recommended_format}</span>
+            ) : null}
           </div>
           <StatusBadge status={clip.status} />
         </div>
@@ -37,7 +41,22 @@ export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCar
         <Link to={`/clips/${clip.id}`} className="block">
           <h3 className="text-lg font-semibold text-white">{clip.suggested_title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-400">{truncate(clip.suggested_description, compact ? 105 : 130)}</p>
+          {clip.selection_reason ? <p className="mt-3 text-sm leading-6 text-cyan-50/90">{truncate(clip.selection_reason, compact ? 85 : 120)}</p> : null}
         </Link>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {clip.virality_label ? (
+            <span className="rounded-full bg-emerald-400/12 px-3 py-1 text-xs font-medium text-emerald-100">{clip.virality_label}</span>
+          ) : null}
+          {clip.timeline_label ? (
+            <span className="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-100">{clip.timeline_label}</span>
+          ) : null}
+          {primarySignals.map((signal) => (
+            <span key={signal} className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
+              {truncate(signal, 28)}
+            </span>
+          ))}
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {clip.suggested_hashtags

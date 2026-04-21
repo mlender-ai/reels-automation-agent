@@ -33,6 +33,31 @@ def make_segments() -> list[dict]:
     ]
 
 
+def make_long_form_segments() -> list[dict]:
+    segments: list[dict] = []
+    groups = [
+        (10.0, "Watch this first exchange because it sets up the decisive counter right away."),
+        (780.0, "This is the moment the pressure starts breaking the opponent and the crowd reacts."),
+        (1520.0, "The coach note here is timing because the feint keeps opening the same angle."),
+        (2380.0, "Look at this exact sequence because the finish is almost there after the jab."),
+        (3190.0, "This is the final swing where the momentum flips and the stoppage feels close."),
+    ]
+    segment_id = 0
+    for base_start, line in groups:
+        for offset in (0.0, 7.4, 15.2):
+            start = base_start + offset
+            segments.append(
+                {
+                    "id": segment_id,
+                    "start": start,
+                    "end": start + 6.2,
+                    "text": f"{line} Segment {segment_id} explains why this clip can work as a short.",
+                }
+            )
+            segment_id += 1
+    return segments
+
+
 class TranscriptNormalizationTests(unittest.TestCase):
     def test_normalize_transcript_segments_sorts_and_deduplicates(self) -> None:
         raw_segments = [
@@ -69,6 +94,16 @@ class ClipGenerationWindowTests(unittest.TestCase):
             generate_ranked_candidate_windows(low_signal)
         self.assertEqual(context.exception.status_code, 422)
         self.assertIn("usable speech", str(context.exception.detail))
+
+    def test_generate_ranked_candidate_windows_spreads_results_for_long_videos(self) -> None:
+        windows = generate_ranked_candidate_windows(make_long_form_segments())
+        self.assertGreaterEqual(len(windows), 3)
+        runtime = make_long_form_segments()[-1]["end"] - make_long_form_segments()[0]["start"]
+        buckets = {
+            min(4, int((((window.start_time + window.end_time) / 2) / runtime) * 5))
+            for window in windows
+        }
+        self.assertGreaterEqual(len(buckets), 3)
 
     def test_combat_sports_profile_detects_and_generates_domain_specific_metadata(self) -> None:
         segments = [

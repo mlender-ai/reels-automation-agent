@@ -5,6 +5,7 @@ from app.models.publish_job import PublishJob
 from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
 from app.models.workflow_job import WorkflowJob
+from app.services.clip_strategy_service import build_clip_strategy
 from app.services.transcription_service import load_transcript_segments
 from app.utils.paths import public_file_url
 
@@ -66,6 +67,20 @@ def serialize_export(export_record: Export | None) -> dict | None:
 
 def serialize_clip(clip: ClipCandidate) -> dict:
     latest_export = clip.exports[0] if clip.exports else None
+    source_runtime_seconds = None
+    if getattr(clip, "project", None) and getattr(clip.project, "source_videos", None):
+        source_runtime_seconds = clip.project.source_videos[0].duration_seconds
+    strategy = build_clip_strategy(
+        hook_text=clip.hook_text,
+        suggested_title=clip.suggested_title,
+        suggested_description=clip.suggested_description,
+        suggested_hashtags=clip.suggested_hashtags,
+        duration=clip.duration,
+        score=clip.score,
+        start_time=clip.start_time,
+        end_time=clip.end_time,
+        source_runtime_seconds=source_runtime_seconds,
+    )
     return {
         "id": clip.id,
         "project_id": clip.project_id,
@@ -81,6 +96,12 @@ def serialize_clip(clip: ClipCandidate) -> dict:
         "status": clip.status,
         "created_at": clip.created_at,
         "updated_at": clip.updated_at,
+        "recommended_format": strategy.recommended_format,
+        "virality_label": strategy.virality_label,
+        "selection_reason": strategy.selection_reason,
+        "selection_signals": strategy.selection_signals,
+        "timeline_label": strategy.timeline_label,
+        "source_runtime_seconds": strategy.source_runtime_seconds,
         "latest_export": serialize_export(latest_export),
     }
 

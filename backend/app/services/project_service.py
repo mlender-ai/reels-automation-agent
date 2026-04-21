@@ -181,7 +181,7 @@ def list_project_clips(db: Session, project_id: int) -> list[ClipCandidate]:
     statement = (
         select(ClipCandidate)
         .where(ClipCandidate.project_id == project_id)
-        .options(selectinload(ClipCandidate.exports))
+        .options(selectinload(ClipCandidate.exports), selectinload(ClipCandidate.project).selectinload(Project.source_videos))
         .order_by(ClipCandidate.score.desc(), ClipCandidate.created_at.asc())
     )
     return db.scalars(statement).unique().all()

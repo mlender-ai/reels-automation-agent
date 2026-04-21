@@ -256,6 +256,11 @@ export function ProjectDetailPage() {
           <div className="mt-6 rounded-3xl border border-cyan-300/15 bg-cyan-300/8 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">다음 액션</p>
             <p className="mt-2 text-sm font-medium text-cyan-100">{nextActionText}</p>
+            {hasSource ? (
+              <p className="mt-2 text-sm leading-6 text-cyan-50/80">
+                이 단계가 끝나면 원본 {previewDurationSeconds ? formatDuration(previewDurationSeconds) : ""}를 기준으로 조회수형 숏츠 후보를 3~5개 자동 추천합니다.
+              </p>
+            ) : null}
           </div>
 
           {project.status === "failed" || actionNotice ? (

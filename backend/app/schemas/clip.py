@@ -22,6 +22,12 @@ class ClipCandidateRead(ORMModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    recommended_format: str
+    virality_label: str
+    selection_reason: str
+    selection_signals: list[str]
+    timeline_label: str | None = None
+    source_runtime_seconds: float | None = None
     latest_export: ExportRead | None = None
 
 

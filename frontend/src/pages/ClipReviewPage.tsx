@@ -465,6 +465,27 @@ export function ClipReviewPage() {
             <StatusBadge status={clip.status} />
           </div>
 
+          <div className="mt-6 grid gap-4 md:grid-cols-[0.9fr,1.1fr]">
+            <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.08] p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/75">추천 포맷</p>
+              <p className="mt-2 text-lg font-semibold text-white">{clip.recommended_format ?? "기본 포맷"}</p>
+              <p className="mt-2 text-sm leading-6 text-cyan-50/85">{clip.virality_label ?? "검토 중"} · {clip.timeline_label ?? "구간 정보 없음"}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">왜 이 후보인가</p>
+              <p className="mt-2 text-sm leading-6 text-white/90">{clip.selection_reason ?? "현재 후보의 핵심 신호를 계산하는 중입니다."}</p>
+              {(clip.selection_signals ?? []).length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(clip.selection_signals ?? []).map((signal) => (
+                    <span key={signal} className="rounded-full bg-white/6 px-3 py-1 text-xs text-slate-200">
+                      {signal}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-300">시작 시간</span>

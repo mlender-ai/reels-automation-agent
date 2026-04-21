@@ -250,6 +250,14 @@ def _iou(candidate: CandidateWindow, accepted: CandidateWindow) -> float:
     return intersection / union if union else 0.0
 
 
+def _timeline_bucket(window: CandidateWindow, runtime: float) -> int:
+    if runtime <= 0:
+        return 0
+    midpoint = (window.start_time + window.end_time) / 2
+    ratio = midpoint / runtime
+    return min(4, max(0, int(ratio * 5)))
+
+
 def _deduplicate(windows: list[CandidateWindow]) -> list[CandidateWindow]:
     selected: list[CandidateWindow] = []
     seen_bounds: set[tuple[float, float]] = set()
@@ -265,7 +273,40 @@ def _deduplicate(windows: list[CandidateWindow]) -> list[CandidateWindow]:
     return selected
 
 
-def _build_candidates(windows: list[CandidateWindow], content_profile: str) -> list[CandidateWindow]:
+def _select_diverse_windows(windows: list[CandidateWindow], runtime: float) -> list[CandidateWindow]:
+    ranked = sorted(windows, key=lambda item: item.score, reverse=True)
+    if runtime < 15 * 60:
+        return _deduplicate(ranked)
+
+    selected: list[CandidateWindow] = []
+    covered_buckets: set[int] = set()
+    seen_bounds: set[tuple[float, float]] = set()
+
+    for candidate in ranked:
+        bucket = _timeline_bucket(candidate, runtime)
+        bounds = (round(candidate.start_time, 1), round(candidate.end_time, 1))
+        if bucket in covered_buckets or bounds in seen_bounds:
+            continue
+        if all(_iou(candidate, accepted) < 0.52 for accepted in selected):
+            selected.append(candidate)
+            covered_buckets.add(bucket)
+            seen_bounds.add(bounds)
+        if len(selected) == 5:
+            return selected
+
+    for candidate in ranked:
+        bounds = (round(candidate.start_time, 1), round(candidate.end_time, 1))
+        if bounds in seen_bounds:
+            continue
+        if all(_iou(candidate, accepted) < 0.58 for accepted in selected):
+            selected.append(candidate)
+            seen_bounds.add(bounds)
+        if len(selected) == 5:
+            break
+    return selected
+
+
+def _build_candidates(windows: list[CandidateWindow], content_profile: str, runtime: float) -> list[CandidateWindow]:
     for window in windows:
         window_text = _window_text(window.segments)
         metadata = DEFAULT_METADATA_GENERATOR.generate(window.segments, window_text, content_profile=content_profile)
@@ -274,7 +315,7 @@ def _build_candidates(windows: list[CandidateWindow], content_profile: str) -> l
         window.suggested_description = metadata.suggested_description
         window.suggested_hashtags = metadata.suggested_hashtags
     meaningful = [window for window in windows if window.score > 0]
-    selected = _deduplicate(meaningful)
+    selected = _select_diverse_windows(meaningful, runtime)
     if len(selected) < 3:
         fallback = [window for window in sorted(windows, key=lambda item: item.score, reverse=True) if window not in selected]
         selected.extend(fallback[: 3 - len(selected)])
@@ -290,7 +331,8 @@ def generate_ranked_candidate_windows(raw_segments: list[dict], content_profile:
     if not windows:
         raise HTTPException(status_code=422, detail="Transcript does not contain enough speech to produce clip candidates")
 
-    top_windows = _build_candidates(windows, resolved_profile)
+    runtime = segments[-1]["end"] - segments[0]["start"]
+    top_windows = _build_candidates(windows, resolved_profile, runtime)
     if not top_windows:
         raise HTTPException(status_code=422, detail="Unable to score useful clip candidates from the transcript")
 
