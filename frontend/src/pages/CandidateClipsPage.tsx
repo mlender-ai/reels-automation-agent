@@ -104,6 +104,11 @@ export function CandidateClipsPage() {
     summary[key] = (summary[key] ?? 0) + 1;
     return summary;
   }, {});
+  const categorySummary = clips.reduce<Record<string, number>>((summary, clip) => {
+    const key = clip.content_profile_label ?? "일반";
+    summary[key] = (summary[key] ?? 0) + 1;
+    return summary;
+  }, {});
 
   return (
     <div className="space-y-8">
@@ -149,13 +154,20 @@ export function CandidateClipsPage() {
             </p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-            <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">추천 요약</p>
               <span className="rounded-full bg-white/8 px-3 py-1 text-xs text-slate-200">평균 점수 {formatScore(averageScore)}</span>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {Object.entries(formatSummary).map(([label, count]) => (
                 <span key={label} className="rounded-full bg-white/6 px-3 py-1.5 text-xs font-medium text-slate-200">
+                  {label} {count}개
+                </span>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {Object.entries(categorySummary).map(([label, count]) => (
+                <span key={label} className="rounded-full bg-cyan-300/10 px-3 py-1.5 text-xs font-medium text-cyan-100">
                   {label} {count}개
                 </span>
               ))}

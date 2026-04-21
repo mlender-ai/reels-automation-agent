@@ -469,7 +469,9 @@ export function ClipReviewPage() {
             <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.08] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/75">추천 포맷</p>
               <p className="mt-2 text-lg font-semibold text-white">{clip.recommended_format ?? "기본 포맷"}</p>
-              <p className="mt-2 text-sm leading-6 text-cyan-50/85">{clip.virality_label ?? "검토 중"} · {clip.timeline_label ?? "구간 정보 없음"}</p>
+              <p className="mt-2 text-sm leading-6 text-cyan-50/85">
+                {clip.content_profile_label ?? "일반"} · {clip.virality_label ?? "검토 중"} · {clip.timeline_label ?? "구간 정보 없음"}
+              </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">왜 이 후보인가</p>

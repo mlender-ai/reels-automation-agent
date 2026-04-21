@@ -4,9 +4,13 @@ from collections import Counter
 from dataclasses import dataclass
 
 from app.services.content_profile_service import (
-    COMBAT_SPORTS_ANALYSIS_TERMS,
-    COMBAT_SPORTS_FINISH_TERMS,
+    CONTENT_PROFILE_BASEBALL,
     CONTENT_PROFILE_COMBAT_SPORTS,
+    CONTENT_PROFILE_FIGURE_SKATING,
+    CONTENT_PROFILE_RACING,
+    CONTENT_PROFILE_SOCCER,
+    PROFILE_ANALYSIS_TERMS,
+    PROFILE_CLIMAX_TERMS,
     detect_content_profile_from_text,
 )
 
@@ -91,35 +95,11 @@ STOPWORDS = {
 }
 
 GENERIC_KEYWORDS = {
-    "fight",
-    "fighter",
-    "fighters",
     "moment",
     "sequence",
     "video",
     "short",
     "clip",
-}
-
-COMBAT_SPORTS_SUFFIX_KEYWORDS = {
-    "knockout",
-    "counter",
-    "referee",
-    "corner",
-    "jab",
-    "feint",
-    "angle",
-    "takedown",
-    "submission",
-    "champion",
-    "round",
-    "pressure",
-    "distance",
-    "timing",
-    "setup",
-    "fence",
-    "bodyshot",
-    "headkick",
 }
 
 GENERIC_PROPER_NAMES = {
@@ -129,6 +109,72 @@ GENERIC_PROPER_NAMES = {
     "Coach",
     "Referee",
     "Champion",
+    "Match",
+    "Race",
+}
+
+PROFILE_SUFFIX_KEYWORDS = {
+    CONTENT_PROFILE_COMBAT_SPORTS: {"knockout", "counter", "jab", "submission", "headkick", "bodyshot"},
+    CONTENT_PROFILE_SOCCER: {"goal", "header", "freekick", "assist", "winner", "save"},
+    CONTENT_PROFILE_RACING: {"overtake", "pole", "pitstop", "lastlap", "safetycar", "win"},
+    CONTENT_PROFILE_FIGURE_SKATING: {"quad", "axel", "spin", "landing", "program", "pcs"},
+    CONTENT_PROFILE_BASEBALL: {"homer", "homerun", "walkoff", "strikeout", "doubleplay", "slider"},
+}
+
+PROFILE_BASE_TAGS = {
+    CONTENT_PROFILE_COMBAT_SPORTS: ["#숏츠", "#복싱", "#격투기", "#shorts", "#boxing", "#fight"],
+    CONTENT_PROFILE_SOCCER: ["#숏츠", "#축구", "#soccer", "#football", "#shorts", "#sports"],
+    CONTENT_PROFILE_RACING: ["#숏츠", "#레이싱", "#motorsport", "#racing", "#shorts", "#sports"],
+    CONTENT_PROFILE_FIGURE_SKATING: ["#숏츠", "#피겨", "#figureskating", "#iceskating", "#shorts", "#sports"],
+    CONTENT_PROFILE_BASEBALL: ["#숏츠", "#야구", "#baseball", "#shorts", "#sports", "#highlight"],
+}
+
+PROFILE_COPY = {
+    CONTENT_PROFILE_COMBAT_SPORTS: {
+        "impact_title": "가드 열리는 순간 바로 끝났다",
+        "analysis_title": "이 장면이 레전드인 이유",
+        "fallback_title": "이 템포 하나가 진짜 레전드다",
+        "impact_desc": "결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다.",
+        "analysis_desc": "세팅, 타이밍, 마무리가 한 번에 읽히도록 전개를 짧고 강하게 묶었습니다.",
+        "fallback_desc": "분위기가 뒤집히는 한 장면만 남겨서 반복 재생이 잘 되는 격투기 숏츠 톤으로 정리했습니다.",
+        "short_hook": "이 장면이 진짜 레전드다",
+    },
+    CONTENT_PROFILE_SOCCER: {
+        "impact_title": "후반 추가시간에 경기 뒤집혔다",
+        "analysis_title": "이 장면이 경기 흐름을 바꿨다",
+        "fallback_title": "이 패턴 하나가 결국 골로 이어졌다",
+        "impact_desc": "골, 선방, 마지막 패스처럼 반응이 바로 오는 장면만 남겨서 짧고 강하게 정리한 축구 숏츠입니다.",
+        "analysis_desc": "빌드업과 전환 포인트가 바로 읽히도록 핵심 장면만 압축해 전술형 숏츠 톤으로 묶었습니다.",
+        "fallback_desc": "경기 리듬이 바뀌는 한 장면만 남겨서 반복 시청이 잘 되는 축구 하이라이트 클립으로 정리했습니다.",
+        "short_hook": "이 한 장면이 경기 바꿨다",
+    },
+    CONTENT_PROFILE_RACING: {
+        "impact_title": "마지막 랩에서 판이 뒤집혔다",
+        "analysis_title": "이 장면이 레이스를 갈랐다",
+        "fallback_title": "이 추월 하나로 분위기가 바뀌었다",
+        "impact_desc": "추월, 피트, 마지막 랩처럼 반응이 바로 오는 장면만 남겨서 레이싱 숏츠에 맞게 속도감 있게 정리했습니다.",
+        "analysis_desc": "전략과 라인이 한 번에 읽히도록 핵심 랩만 압축해서 레이스 분석형 숏츠로 정리했습니다.",
+        "fallback_desc": "레이스 흐름이 바뀌는 포인트만 남겨서 짧게 몰입되는 레이싱 하이라이트 톤으로 묶었습니다.",
+        "short_hook": "이 랩에서 레이스 끝났다",
+    },
+    CONTENT_PROFILE_FIGURE_SKATING: {
+        "impact_title": "클린 랜딩 하나로 분위기가 바뀌었다",
+        "analysis_title": "이 프로그램이 살아난 이유",
+        "fallback_title": "이 연결 동작이 점수를 끌어올렸다",
+        "impact_desc": "클린 랜딩과 포인트가 터지는 장면만 남겨서 짧고 우아한 피겨 숏츠 톤으로 압축했습니다.",
+        "analysis_desc": "점프 진입, 회전, 구성 포인트가 읽히도록 기술적인 핵심만 남긴 피겨 분석형 클립입니다.",
+        "fallback_desc": "프로그램의 분위기가 살아나는 순간만 남겨서 반복 재생이 잘 되는 피겨 하이라이트로 정리했습니다.",
+        "short_hook": "이 랜딩 하나가 분위기 바꿨다",
+    },
+    CONTENT_PROFILE_BASEBALL: {
+        "impact_title": "이 타석 하나로 경기 끝났다",
+        "analysis_title": "이 수비가 흐름을 바꿨다",
+        "fallback_title": "이 장면 하나가 야구를 뒤집었다",
+        "impact_desc": "홈런, 끝내기, 삼진처럼 바로 반응이 오는 장면만 남겨서 짧게 터지는 야구 숏츠로 압축했습니다.",
+        "analysis_desc": "볼배합과 타이밍 포인트가 읽히도록 핵심 장면만 남긴 야구 분석형 클립입니다.",
+        "fallback_desc": "이닝 흐름이 바뀌는 장면만 남겨서 짧고 강하게 소비되는 야구 하이라이트로 정리했습니다.",
+        "short_hook": "이 한 장면이 경기 끝냈다",
+    },
 }
 
 
@@ -189,66 +235,93 @@ def _contains_any(text: str, terms: set[str]) -> bool:
     return any(term in lowered for term in terms)
 
 
-def _combat_sports_title(window_text: str, hook_text: str, keywords: list[str], proper_names: list[str]) -> str:
+def _profile_title(profile: str, window_text: str, hook_text: str, keywords: list[str], proper_names: list[str]) -> str:
     lowered = window_text.lower()
     subject = proper_names[0] if proper_names else ""
-    if _contains_any(lowered, COMBAT_SPORTS_FINISH_TERMS):
-        if subject:
-            title = f"{subject}, 이 장면이 레전드다"
-        else:
-            title = "가드 열리는 순간 바로 끝났다"
-    elif _contains_any(lowered, COMBAT_SPORTS_ANALYSIS_TERMS):
-        if subject:
-            title = f"{subject} 이 장면이 무서운 이유"
-        else:
-            title = "이 장면이 레전드인 이유"
-    elif any(keyword in lowered for keyword in ["round", "라운드", "final", "마지막"]):
-        title = "한 라운드를 뒤집은 10초"
+    profile_copy = PROFILE_COPY[profile]
+    if _contains_any(lowered, PROFILE_CLIMAX_TERMS[profile]):
+        title = f"{subject}, {profile_copy['impact_title']}" if subject else profile_copy["impact_title"]
+    elif _contains_any(lowered, PROFILE_ANALYSIS_TERMS[profile]):
+        title = f"{subject} {profile_copy['analysis_title']}" if subject else profile_copy["analysis_title"]
     else:
-        title = f"{subject} 아직 안 죽었다" if subject else "이 템포 하나가 진짜 레전드다"
+        title = f"{subject}, {profile_copy['fallback_title']}" if subject else profile_copy["fallback_title"]
 
     for keyword in keywords:
         clean_keyword = re.sub(r"[^0-9A-Za-z가-힣]+", "", keyword)
-        if clean_keyword and clean_keyword.lower() in COMBAT_SPORTS_SUFFIX_KEYWORDS:
+        if clean_keyword and clean_keyword.lower() in PROFILE_SUFFIX_KEYWORDS.get(profile, set()):
             suffix = clean_keyword.capitalize() if not _contains_korean(clean_keyword) else clean_keyword
             title = f"{title} | {suffix}"
             break
-    if len(title) <= 70:
+
+    if len(title) <= 72:
         return title
     trimmed_hook = hook_text.strip(" .!?")
-    return trimmed_hook[:67].rstrip() + "..."
+    return trimmed_hook[:69].rstrip() + "..."
 
 
-def _combat_sports_description(window_segments: list[dict], hook_text: str, window_text: str) -> str:
+def _profile_description(profile: str, window_segments: list[dict], hook_text: str, window_text: str) -> str:
     first_line = window_segments[0]["text"].strip() if window_segments else hook_text
-    if _contains_any(window_text, COMBAT_SPORTS_FINISH_TERMS):
-        description = f"{first_line} 결정적인 진입과 마무리만 남겨서, 쇼츠에서 바로 터지는 구간으로 압축한 클립입니다."
-    elif _contains_any(window_text, COMBAT_SPORTS_ANALYSIS_TERMS):
-        description = f"{first_line} 세팅, 타이밍, 마무리가 한 번에 읽히도록 전개를 짧고 강하게 묶었습니다."
+    profile_copy = PROFILE_COPY[profile]
+    if _contains_any(window_text.lower(), PROFILE_CLIMAX_TERMS[profile]):
+        description = f"{first_line} {profile_copy['impact_desc']}"
+    elif _contains_any(window_text.lower(), PROFILE_ANALYSIS_TERMS[profile]):
+        description = f"{first_line} {profile_copy['analysis_desc']}"
     else:
-        description = f"{first_line} 분위기가 뒤집히는 한 장면만 남겨서 반복 재생이 잘 되는 격투기 숏츠 톤으로 정리했습니다."
+        description = f"{first_line} {profile_copy['fallback_desc']}"
     return description[:220].rstrip()
 
 
-def _combat_sports_hashtags(window_text: str, keywords: list[str]) -> str:
-    tags = ["#숏츠", "#복싱", "#격투기", "#shorts", "#boxing", "#fight"]
+def _profile_hashtags(profile: str, window_text: str, keywords: list[str]) -> str:
+    tags = list(PROFILE_BASE_TAGS[profile])
     lowered = window_text.lower()
-    if "boxing" in lowered or "복싱" in lowered:
-        tags.append("#복싱훈련")
-    if "muay" in lowered or "무에타이" in lowered:
-        tags.append("#muaythai")
-    if "ufc" in lowered:
-        tags.append("#ufc")
-    if "kickboxing" in lowered or "킥복싱" in lowered:
-        tags.append("#kickboxing")
-    if any(term in lowered for term in ["knockout", "ko", "다운", "실신"]):
-        tags.append("#knockout")
-    if any(term in lowered for term in ["submission", "초크", "암바", "tap", "tapped"]):
-        tags.append("#submission")
+
+    extra_tags = {
+        CONTENT_PROFILE_COMBAT_SPORTS: {
+            "boxing": "#boxing",
+            "복싱": "#복싱훈련",
+            "ufc": "#ufc",
+            "kickboxing": "#kickboxing",
+            "knockout": "#knockout",
+            "submission": "#submission",
+        },
+        CONTENT_PROFILE_SOCCER: {
+            "goal": "#goal",
+            "골": "#골모음",
+            "freekick": "#freekick",
+            "penalty": "#penalty",
+            "stoppage": "#추가시간",
+        },
+        CONTENT_PROFILE_RACING: {
+            "f1": "#f1",
+            "overtake": "#overtake",
+            "pit": "#pitstop",
+            "pole": "#poleposition",
+            "lap": "#lastlap",
+        },
+        CONTENT_PROFILE_FIGURE_SKATING: {
+            "quad": "#quad",
+            "axel": "#axel",
+            "spin": "#spin",
+            "program": "#program",
+            "pcs": "#pcs",
+        },
+        CONTENT_PROFILE_BASEBALL: {
+            "mlb": "#mlb",
+            "home": "#homerun",
+            "홈런": "#홈런",
+            "walkoff": "#walkoff",
+            "strikeout": "#strikeout",
+        },
+    }
+
+    for trigger, tag in extra_tags.get(profile, {}).items():
+        if trigger in lowered:
+            tags.append(tag)
+
     for keyword in keywords[:4]:
         normalized = re.sub(r"[^0-9A-Za-z가-힣]+", "", keyword)
-        lowered = normalized.lower()
-        if normalized and len(normalized) >= 4 and lowered not in STOPWORDS and lowered not in GENERIC_KEYWORDS:
+        lowered_keyword = normalized.lower()
+        if normalized and len(normalized) >= 4 and lowered_keyword not in STOPWORDS and lowered_keyword not in GENERIC_KEYWORDS:
             tags.append(f"#{normalized}")
 
     unique_tags: list[str] = []
@@ -265,15 +338,12 @@ class HeuristicClipMetadataGenerator(ClipMetadataGenerator):
         proper_names = _extract_proper_names(window_text)
         resolved_profile = content_profile or detect_content_profile_from_text(window_text)
 
-        if resolved_profile == CONTENT_PROFILE_COMBAT_SPORTS:
-            title = _combat_sports_title(window_text, hook_text, keywords, proper_names)
-            description = _combat_sports_description(window_segments, hook_text, window_text)
-            hashtags_string = _combat_sports_hashtags(window_text, keywords)
+        if resolved_profile in PROFILE_COPY:
+            title = _profile_title(resolved_profile, window_text, hook_text, keywords, proper_names)
+            description = _profile_description(resolved_profile, window_segments, hook_text, window_text)
+            hashtags_string = _profile_hashtags(resolved_profile, window_text, keywords)
             if len(hook_text) > 34:
-                if proper_names:
-                    hook_text = f"{proper_names[0]} 레전드 장면"
-                else:
-                    hook_text = "이 장면이 진짜 레전드다"
+                hook_text = PROFILE_COPY[resolved_profile]["short_hook"]
         else:
             title_seed = hook_text.strip(" .!?")
             if len(title_seed) > 62:
@@ -284,9 +354,7 @@ class HeuristicClipMetadataGenerator(ClipMetadataGenerator):
                 title = title_seed or "Shortform Highlight"
 
             sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", window_text) if part.strip()]
-            description = " ".join(sentences[:2])
-            if not description:
-                description = hook_text
+            description = " ".join(sentences[:2]) or hook_text
             if len(description) > 220:
                 description = description[:217].rstrip() + "..."
 

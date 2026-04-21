@@ -25,6 +25,9 @@ export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCar
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-cyan-100">{formatDuration(clip.duration)}</span>
             <span className="rounded-full bg-cyan-300/15 px-3 py-1 text-xs font-semibold text-cyan-100">점수 {formatScore(clip.score)}</span>
+            {clip.content_profile_label ? (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90">{clip.content_profile_label}</span>
+            ) : null}
             {clip.recommended_format ? (
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90">{clip.recommended_format}</span>
             ) : null}

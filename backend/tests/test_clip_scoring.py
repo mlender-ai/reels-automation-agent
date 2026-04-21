@@ -11,7 +11,14 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.services.clip_scoring_service import generate_ranked_candidate_windows  # noqa: E402
-from app.services.content_profile_service import CONTENT_PROFILE_COMBAT_SPORTS, detect_content_profile_from_text  # noqa: E402
+from app.services.content_profile_service import (  # noqa: E402
+    CONTENT_PROFILE_BASEBALL,
+    CONTENT_PROFILE_COMBAT_SPORTS,
+    CONTENT_PROFILE_FIGURE_SKATING,
+    CONTENT_PROFILE_RACING,
+    CONTENT_PROFILE_SOCCER,
+    detect_content_profile_from_text,
+)
 from app.services.metadata_generation_service import DEFAULT_METADATA_GENERATOR  # noqa: E402
 from app.services.validation_service import ensure_transcript_segments_available, normalize_transcript_segments  # noqa: E402
 
@@ -120,3 +127,51 @@ class ClipGenerationWindowTests(unittest.TestCase):
         self.assertTrue(
             any(fragment in metadata.suggested_title.lower() for fragment in ["fight", "exchange", "caught", "finish", "feint", "바로 끝났다"])
         )
+
+    def test_soccer_profile_generates_soccer_specific_metadata(self) -> None:
+        segments = [
+            {"id": 0, "start": 0.0, "end": 4.5, "text": "The through ball breaks the line and the striker finishes the winner in stoppage time."},
+            {"id": 1, "start": 4.7, "end": 8.9, "text": "That goal only happens because the overlap drags the fullback away from the passing lane."},
+            {"id": 2, "start": 9.2, "end": 14.0, "text": "The keeper is set for the cutback, but the final touch goes near post instead."},
+        ]
+        text = " ".join(segment["text"] for segment in segments)
+        self.assertEqual(detect_content_profile_from_text(text), CONTENT_PROFILE_SOCCER)
+        metadata = DEFAULT_METADATA_GENERATOR.generate(segments, text)
+        self.assertTrue(any(tag in metadata.suggested_hashtags for tag in ["#축구", "#soccer", "#football"]))
+        self.assertTrue(any(fragment in metadata.suggested_title.lower() for fragment in ["경기", "골", "stoppage", "goal"]))
+
+    def test_racing_profile_generates_racing_specific_metadata(self) -> None:
+        segments = [
+            {"id": 0, "start": 0.0, "end": 3.8, "text": "The overtake comes on the last lap after the undercut finally pays off."},
+            {"id": 1, "start": 4.0, "end": 8.6, "text": "That pit stop call puts the leader under pressure right before the safety car ends."},
+            {"id": 2, "start": 8.9, "end": 13.0, "text": "You can see the traction difference out of the final corner immediately."},
+        ]
+        text = " ".join(segment["text"] for segment in segments)
+        self.assertEqual(detect_content_profile_from_text(text), CONTENT_PROFILE_RACING)
+        metadata = DEFAULT_METADATA_GENERATOR.generate(segments, text)
+        self.assertTrue(any(tag in metadata.suggested_hashtags for tag in ["#레이싱", "#racing", "#motorsport"]))
+        self.assertTrue(any(fragment in metadata.suggested_title.lower() for fragment in ["레이스", "랩", "race", "lap"]))
+
+    def test_figure_skating_profile_generates_figure_specific_metadata(self) -> None:
+        segments = [
+            {"id": 0, "start": 0.0, "end": 4.2, "text": "The quad toe is fully rotated and the landing changes the entire feel of the program."},
+            {"id": 1, "start": 4.5, "end": 9.1, "text": "That clean combination brings the crowd up before the final spin sequence."},
+            {"id": 2, "start": 9.5, "end": 14.2, "text": "The flow out of the jump is why the component score climbs here."},
+        ]
+        text = " ".join(segment["text"] for segment in segments)
+        self.assertEqual(detect_content_profile_from_text(text), CONTENT_PROFILE_FIGURE_SKATING)
+        metadata = DEFAULT_METADATA_GENERATOR.generate(segments, text)
+        self.assertTrue(any(tag in metadata.suggested_hashtags for tag in ["#피겨", "#figureskating", "#iceskating"]))
+        self.assertTrue(any(fragment in metadata.suggested_title.lower() for fragment in ["프로그램", "랜딩", "program", "landing"]))
+
+    def test_baseball_profile_generates_baseball_specific_metadata(self) -> None:
+        segments = [
+            {"id": 0, "start": 0.0, "end": 4.0, "text": "The walk-off homer lands the second the closer misses inside with the fastball."},
+            {"id": 1, "start": 4.3, "end": 8.7, "text": "This at-bat turns because the count changes and the slider never gets back to the corner."},
+            {"id": 3, "start": 9.0, "end": 13.6, "text": "That one swing flips the inning and ends the game immediately."},
+        ]
+        text = " ".join(segment["text"] for segment in segments)
+        self.assertEqual(detect_content_profile_from_text(text), CONTENT_PROFILE_BASEBALL)
+        metadata = DEFAULT_METADATA_GENERATOR.generate(segments, text)
+        self.assertTrue(any(tag in metadata.suggested_hashtags for tag in ["#야구", "#baseball", "#mlb"]))
+        self.assertTrue(any(fragment in metadata.suggested_title.lower() for fragment in ["경기", "타석", "walk", "home"]))

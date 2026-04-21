@@ -80,6 +80,8 @@ export type ClipCandidate = {
   status: string;
   created_at: string;
   updated_at: string;
+  content_profile?: string;
+  content_profile_label?: string;
   recommended_format?: string;
   virality_label?: string;
   selection_reason?: string;

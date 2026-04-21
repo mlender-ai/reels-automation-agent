@@ -22,6 +22,8 @@ class ClipCandidateRead(ORMModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    content_profile: str
+    content_profile_label: str
     recommended_format: str
     virality_label: str
     selection_reason: str

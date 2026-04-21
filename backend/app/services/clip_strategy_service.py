@@ -3,7 +3,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.services.content_profile_service import COMBAT_SPORTS_ANALYSIS_TERMS, COMBAT_SPORTS_FINISH_TERMS
+from app.services.content_profile_service import (
+    CONTENT_PROFILE_FIGURE_SKATING,
+    PROFILE_ANALYSIS_TERMS,
+    PROFILE_CLIMAX_TERMS,
+    detect_content_profile_from_text,
+    get_profile_label,
+)
 
 
 FORMAT_LABELS = {
@@ -17,6 +23,8 @@ FORMAT_LABELS = {
 
 @dataclass
 class ClipStrategy:
+    content_profile: str
+    content_profile_label: str
     recommended_format: str
     virality_label: str
     selection_reason: str
@@ -34,10 +42,14 @@ def _normalized_text(*parts: str | None) -> str:
     return " ".join((part or "").strip() for part in parts if part).strip().lower()
 
 
-def _infer_format(text: str, duration: float, score: float) -> str:
-    if _contains_any(text, COMBAT_SPORTS_ANALYSIS_TERMS.union({"분석", "브레이크다운", "이유", "why", "how"})):
+def _infer_format(text: str, duration: float, score: float, content_profile: str) -> str:
+    analysis_terms = PROFILE_ANALYSIS_TERMS.get(content_profile, set()).union({"분석", "브레이크다운", "이유", "why", "how"})
+    climax_terms = PROFILE_CLIMAX_TERMS.get(content_profile, set()).union({"레전드", "끝났다", "one shot", "exact moment"})
+    if _contains_any(text, analysis_terms):
+        if content_profile == CONTENT_PROFILE_FIGURE_SKATING:
+            return FORMAT_LABELS["editorial"] if duration >= 18 else FORMAT_LABELS["analysis"]
         return FORMAT_LABELS["coach_note"] if duration >= 18 else FORMAT_LABELS["analysis"]
-    if _contains_any(text, COMBAT_SPORTS_FINISH_TERMS.union({"레전드", "끝났다", "one shot", "exact moment"})):
+    if _contains_any(text, climax_terms):
         return FORMAT_LABELS["finish"] if duration <= 18 else FORMAT_LABELS["legend"]
     if score >= 84 and duration <= 18:
         return FORMAT_LABELS["legend"]
@@ -70,10 +82,13 @@ def build_clip_strategy(
     score: float,
     start_time: float,
     end_time: float,
+    content_profile: str | None = None,
     source_runtime_seconds: float | None = None,
 ) -> ClipStrategy:
     normalized = _normalized_text(hook_text, suggested_title, suggested_description, suggested_hashtags)
-    recommended_format = _infer_format(normalized, duration, score)
+    resolved_profile = content_profile or detect_content_profile_from_text(normalized)
+    recommended_format = _infer_format(normalized, duration, score, resolved_profile)
+    profile_label = get_profile_label(resolved_profile)
 
     selection_signals: list[str] = []
     if score >= 88:
@@ -93,10 +108,10 @@ def build_clip_strategy(
     if re.search(r"[!?]|왜|바로|결정적|레전드|exact|watch|look", hook_text.lower()):
         selection_signals.append("초반 3초 안에 훅으로 쓰기 좋은 문장이 잡혀 있습니다")
 
-    if _contains_any(normalized, COMBAT_SPORTS_FINISH_TERMS):
-        selection_signals.append("격투기에서 반응이 잘 나오는 피니시/결정적 장면 문맥이 있습니다")
-    elif _contains_any(normalized, COMBAT_SPORTS_ANALYSIS_TERMS):
-        selection_signals.append("해설형 또는 코치 노트형 포맷으로 풀 수 있는 분석 문맥이 있습니다")
+    if _contains_any(normalized, PROFILE_CLIMAX_TERMS.get(resolved_profile, set())):
+        selection_signals.append(f"{profile_label}에서 반응이 잘 나오는 결정적 장면 문맥이 있습니다")
+    elif _contains_any(normalized, PROFILE_ANALYSIS_TERMS.get(resolved_profile, set())):
+        selection_signals.append(f"{profile_label} 해설형 또는 분석형 포맷으로 풀 수 있는 문맥이 있습니다")
 
     if source_runtime_seconds and source_runtime_seconds >= 1800 and duration <= 22:
         selection_signals.append("긴 원본에서 짧게 압축된 장면이라 컷 체감이 분명합니다")
@@ -114,6 +129,8 @@ def build_clip_strategy(
         virality_label = "보조 후보"
 
     return ClipStrategy(
+        content_profile=resolved_profile,
+        content_profile_label=profile_label,
         recommended_format=recommended_format,
         virality_label=virality_label,
         selection_reason=selection_reason,

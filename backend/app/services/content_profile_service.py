@@ -4,6 +4,27 @@ import re
 
 CONTENT_PROFILE_GENERAL = "general"
 CONTENT_PROFILE_COMBAT_SPORTS = "combat_sports"
+CONTENT_PROFILE_SOCCER = "soccer"
+CONTENT_PROFILE_RACING = "racing"
+CONTENT_PROFILE_FIGURE_SKATING = "figure_skating"
+CONTENT_PROFILE_BASEBALL = "baseball"
+
+SPORT_CONTENT_PROFILES = {
+    CONTENT_PROFILE_COMBAT_SPORTS,
+    CONTENT_PROFILE_SOCCER,
+    CONTENT_PROFILE_RACING,
+    CONTENT_PROFILE_FIGURE_SKATING,
+    CONTENT_PROFILE_BASEBALL,
+}
+
+PROFILE_DISPLAY_LABELS = {
+    CONTENT_PROFILE_GENERAL: "일반",
+    CONTENT_PROFILE_COMBAT_SPORTS: "격투기",
+    CONTENT_PROFILE_SOCCER: "축구",
+    CONTENT_PROFILE_RACING: "레이싱",
+    CONTENT_PROFILE_FIGURE_SKATING: "피겨",
+    CONTENT_PROFILE_BASEBALL: "야구",
+}
 
 COMBAT_SPORTS_KEYWORDS = {
     "mma",
@@ -150,23 +171,429 @@ COMBAT_SPORTS_ANALYSIS_TERMS = {
     "결정적",
 }
 
+SOCCER_KEYWORDS = {
+    "soccer",
+    "football",
+    "goal",
+    "striker",
+    "midfielder",
+    "winger",
+    "keeper",
+    "goalkeeper",
+    "assist",
+    "counterattack",
+    "counterpress",
+    "pressing",
+    "penalty",
+    "freekick",
+    "free",
+    "kick",
+    "corner",
+    "header",
+    "offside",
+    "throughball",
+    "dribble",
+    "var",
+    "extra",
+    "time",
+    "stoppage",
+    "league",
+    "cup",
+    "matchday",
+    "축구",
+    "골",
+    "도움",
+    "어시스트",
+    "역전",
+    "추가시간",
+    "프리킥",
+    "코너킥",
+    "헤더",
+    "오프사이드",
+    "드리블",
+    "골키퍼",
+    "세트피스",
+    "결승골",
+}
+
+SOCCER_CLIMAX_TERMS = {
+    "goal",
+    "equalizer",
+    "winner",
+    "brace",
+    "hattrick",
+    "hat-trick",
+    "save",
+    "penalty",
+    "freekick",
+    "header",
+    "volley",
+    "counterattack",
+    "last-minute",
+    "stoppage",
+    "골",
+    "동점골",
+    "결승골",
+    "선방",
+    "페널티",
+    "추가시간",
+    "헤더",
+    "중거리",
+}
+
+SOCCER_ANALYSIS_TERMS = {
+    "pressing",
+    "shape",
+    "line",
+    "transition",
+    "spacing",
+    "passing",
+    "build-up",
+    "overlap",
+    "underlap",
+    "why",
+    "how",
+    "set piece",
+    "세트피스",
+    "빌드업",
+    "압박",
+    "전환",
+    "간격",
+    "패턴",
+    "포지셔닝",
+    "왜",
+    "어떻게",
+}
+
+RACING_KEYWORDS = {
+    "racing",
+    "race",
+    "f1",
+    "formula",
+    "motorsport",
+    "motogp",
+    "nascar",
+    "indycar",
+    "lap",
+    "pit",
+    "pitstop",
+    "pit-stop",
+    "overtake",
+    "undercut",
+    "overcut",
+    "sector",
+    "quali",
+    "qualifying",
+    "pole",
+    "drs",
+    "slipstream",
+    "safety",
+    "car",
+    "teammate",
+    "레이싱",
+    "레이스",
+    "모터스포츠",
+    "랩",
+    "피트",
+    "피트스탑",
+    "추월",
+    "폴포지션",
+    "예선",
+    "결승",
+    "세이프티카",
+}
+
+RACING_CLIMAX_TERMS = {
+    "overtake",
+    "pass",
+    "last lap",
+    "photo finish",
+    "pole",
+    "win",
+    "crash",
+    "safety car",
+    "undercut",
+    "추월",
+    "마지막랩",
+    "라스트랩",
+    "우승",
+    "충돌",
+    "폴포지션",
+    "피트스탑",
+}
+
+RACING_ANALYSIS_TERMS = {
+    "strategy",
+    "tyre",
+    "tire",
+    "degradation",
+    "pace",
+    "aero",
+    "setup",
+    "sector",
+    "braking",
+    "traction",
+    "slipstream",
+    "why",
+    "how",
+    "전략",
+    "타이어",
+    "페이스",
+    "셋업",
+    "브레이킹",
+    "라인",
+    "왜",
+    "어떻게",
+}
+
+FIGURE_SKATING_KEYWORDS = {
+    "figure",
+    "skating",
+    "skater",
+    "program",
+    "free",
+    "short",
+    "ice",
+    "rink",
+    "quad",
+    "triple",
+    "axel",
+    "salchow",
+    "loop",
+    "lutz",
+    "flip",
+    "toe",
+    "spin",
+    "combination",
+    "stsq",
+    "choreo",
+    "pcs",
+    "goe",
+    "피겨",
+    "피겨스케이팅",
+    "스케이팅",
+    "프로그램",
+    "쿼드",
+    "트리플",
+    "악셀",
+    "러츠",
+    "플립",
+    "토룹",
+    "스핀",
+    "콤비네이션",
+    "연기",
+    "가산점",
+}
+
+FIGURE_SKATING_CLIMAX_TERMS = {
+    "clean",
+    "landed",
+    "quad",
+    "triple axel",
+    "combination",
+    "final spin",
+    "personal best",
+    "standing ovation",
+    "클린",
+    "랜딩",
+    "쿼드",
+    "트리플악셀",
+    "연속점프",
+    "가산점",
+    "퍼스널베스트",
+}
+
+FIGURE_SKATING_ANALYSIS_TERMS = {
+    "edge",
+    "rotation",
+    "entry",
+    "flow",
+    "extension",
+    "interpretation",
+    "component",
+    "technique",
+    "why",
+    "how",
+    "엣지",
+    "회전수",
+    "진입",
+    "플로우",
+    "표현력",
+    "구성점수",
+    "기술점",
+    "왜",
+    "어떻게",
+}
+
+BASEBALL_KEYWORDS = {
+    "baseball",
+    "mlb",
+    "inning",
+    "pitch",
+    "pitcher",
+    "batter",
+    "catcher",
+    "homer",
+    "home",
+    "run",
+    "walkoff",
+    "walk-off",
+    "bullpen",
+    "curveball",
+    "slider",
+    "fastball",
+    "changeup",
+    "strikeout",
+    "doubleplay",
+    "double-play",
+    "steal",
+    "outfield",
+    "infield",
+    "야구",
+    "홈런",
+    "끝내기",
+    "투수",
+    "타자",
+    "포수",
+    "삼진",
+    "병살",
+    "도루",
+    "체인지업",
+    "슬라이더",
+    "직구",
+    "불펜",
+    "이닝",
+}
+
+BASEBALL_CLIMAX_TERMS = {
+    "home run",
+    "homer",
+    "walkoff",
+    "walk-off",
+    "strikeout",
+    "double play",
+    "robbery",
+    "grand slam",
+    "끝내기",
+    "홈런",
+    "삼진",
+    "병살",
+    "호수비",
+    "만루홈런",
+}
+
+BASEBALL_ANALYSIS_TERMS = {
+    "count",
+    "sequence",
+    "pitch mix",
+    "release",
+    "spin",
+    "frame",
+    "command",
+    "location",
+    "why",
+    "how",
+    "볼배합",
+    "카운트",
+    "제구",
+    "구속",
+    "회전수",
+    "릴리스",
+    "코스",
+    "왜",
+    "어떻게",
+}
+
+PROFILE_KEYWORDS = {
+    CONTENT_PROFILE_COMBAT_SPORTS: COMBAT_SPORTS_KEYWORDS,
+    CONTENT_PROFILE_SOCCER: SOCCER_KEYWORDS,
+    CONTENT_PROFILE_RACING: RACING_KEYWORDS,
+    CONTENT_PROFILE_FIGURE_SKATING: FIGURE_SKATING_KEYWORDS,
+    CONTENT_PROFILE_BASEBALL: BASEBALL_KEYWORDS,
+}
+
+PROFILE_CLIMAX_TERMS = {
+    CONTENT_PROFILE_COMBAT_SPORTS: COMBAT_SPORTS_FINISH_TERMS,
+    CONTENT_PROFILE_SOCCER: SOCCER_CLIMAX_TERMS,
+    CONTENT_PROFILE_RACING: RACING_CLIMAX_TERMS,
+    CONTENT_PROFILE_FIGURE_SKATING: FIGURE_SKATING_CLIMAX_TERMS,
+    CONTENT_PROFILE_BASEBALL: BASEBALL_CLIMAX_TERMS,
+}
+
+PROFILE_ANALYSIS_TERMS = {
+    CONTENT_PROFILE_COMBAT_SPORTS: COMBAT_SPORTS_ANALYSIS_TERMS,
+    CONTENT_PROFILE_SOCCER: SOCCER_ANALYSIS_TERMS,
+    CONTENT_PROFILE_RACING: RACING_ANALYSIS_TERMS,
+    CONTENT_PROFILE_FIGURE_SKATING: FIGURE_SKATING_ANALYSIS_TERMS,
+    CONTENT_PROFILE_BASEBALL: BASEBALL_ANALYSIS_TERMS,
+}
+
+PROFILE_PHRASE_BONUSES = {
+    CONTENT_PROFILE_COMBAT_SPORTS: ("rear naked choke", "spinning back kick", "split decision", "title shot", "fight iq", "메인 이벤트"),
+    CONTENT_PROFILE_SOCCER: ("last minute winner", "stoppage time", "through ball", "set piece", "counter attack", "결승골", "추가시간"),
+    CONTENT_PROFILE_RACING: ("last lap", "pit stop", "photo finish", "safety car", "pole position", "라스트랩", "피트스탑"),
+    CONTENT_PROFILE_FIGURE_SKATING: ("triple axel", "quad toe", "free skate", "short program", "트리플악셀", "쿼드"),
+    CONTENT_PROFILE_BASEBALL: ("walk off", "grand slam", "pitch mix", "double play", "만루 홈런", "끝내기"),
+}
+
+PROFILE_TARGET_WINDOWS = {
+    CONTENT_PROFILE_GENERAL: [20, 24, 28, 32, 36, 40, 45],
+    CONTENT_PROFILE_COMBAT_SPORTS: [9, 11, 13, 15, 18, 21],
+    CONTENT_PROFILE_SOCCER: [10, 12, 15, 18, 21, 24],
+    CONTENT_PROFILE_RACING: [8, 10, 12, 15, 18],
+    CONTENT_PROFILE_FIGURE_SKATING: [12, 15, 18, 21, 24],
+    CONTENT_PROFILE_BASEBALL: [9, 12, 15, 18, 21],
+}
+
+PROFILE_DURATION_RANGES = {
+    CONTENT_PROFILE_GENERAL: (20, 45),
+    CONTENT_PROFILE_COMBAT_SPORTS: (9, 24),
+    CONTENT_PROFILE_SOCCER: (10, 26),
+    CONTENT_PROFILE_RACING: (8, 22),
+    CONTENT_PROFILE_FIGURE_SKATING: (12, 28),
+    CONTENT_PROFILE_BASEBALL: (9, 24),
+}
+
+PROFILE_IDEAL_DURATION = {
+    CONTENT_PROFILE_GENERAL: 32,
+    CONTENT_PROFILE_COMBAT_SPORTS: 21,
+    CONTENT_PROFILE_SOCCER: 18,
+    CONTENT_PROFILE_RACING: 14,
+    CONTENT_PROFILE_FIGURE_SKATING: 20,
+    CONTENT_PROFILE_BASEBALL: 16,
+}
+
 
 def tokenize_text(text: str) -> list[str]:
     return re.findall(r"[0-9A-Za-z가-힣]{2,}", text.lower())
 
 
-def combat_sports_signal_score(text: str) -> int:
+def get_profile_label(profile: str) -> str:
+    return PROFILE_DISPLAY_LABELS.get(profile, "일반")
+
+
+def is_sports_content_profile(profile: str) -> bool:
+    return profile in SPORT_CONTENT_PROFILES
+
+
+def profile_signal_score(text: str, profile: str) -> int:
     tokens = tokenize_text(text)
     if not tokens:
         return 0
-    token_hits = sum(1 for token in tokens if token in COMBAT_SPORTS_KEYWORDS)
+    token_hits = sum(1 for token in tokens if token in PROFILE_KEYWORDS.get(profile, set()))
     phrase_text = " ".join(tokens)
     phrase_hits = 0
-    for phrase in ("rear naked choke", "spinning back kick", "split decision", "title shot", "fight iq", "메인 이벤트"):
+    for phrase in PROFILE_PHRASE_BONUSES.get(profile, ()):
         if phrase in phrase_text:
             phrase_hits += 2
     return token_hits + phrase_hits
 
 
+def combat_sports_signal_score(text: str) -> int:
+    return profile_signal_score(text, CONTENT_PROFILE_COMBAT_SPORTS)
+
+
 def detect_content_profile_from_text(text: str) -> str:
-    return CONTENT_PROFILE_COMBAT_SPORTS if combat_sports_signal_score(text) >= 4 else CONTENT_PROFILE_GENERAL
+    profile_scores = {profile: profile_signal_score(text, profile) for profile in SPORT_CONTENT_PROFILES}
+    best_profile = max(profile_scores, key=profile_scores.get, default=CONTENT_PROFILE_GENERAL)
+    return best_profile if profile_scores.get(best_profile, 0) >= 4 else CONTENT_PROFILE_GENERAL

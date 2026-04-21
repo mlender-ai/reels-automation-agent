@@ -96,6 +96,8 @@ def serialize_clip(clip: ClipCandidate) -> dict:
         "status": clip.status,
         "created_at": clip.created_at,
         "updated_at": clip.updated_at,
+        "content_profile": strategy.content_profile,
+        "content_profile_label": strategy.content_profile_label,
         "recommended_format": strategy.recommended_format,
         "virality_label": strategy.virality_label,
         "selection_reason": strategy.selection_reason,

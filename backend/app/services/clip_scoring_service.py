@@ -18,10 +18,15 @@ from app.models.clip_candidate import ClipCandidate
 from app.models.project import Project
 from app.models.transcript import Transcript
 from app.services.content_profile_service import (
-    COMBAT_SPORTS_ANALYSIS_TERMS,
-    COMBAT_SPORTS_FINISH_TERMS,
     CONTENT_PROFILE_COMBAT_SPORTS,
+    CONTENT_PROFILE_GENERAL,
+    PROFILE_ANALYSIS_TERMS,
+    PROFILE_CLIMAX_TERMS,
+    PROFILE_DURATION_RANGES,
+    PROFILE_IDEAL_DURATION,
+    PROFILE_TARGET_WINDOWS,
     detect_content_profile_from_text,
+    is_sports_content_profile,
 )
 from app.services.metadata_generation_service import DEFAULT_METADATA_GENERATOR
 from app.services.transcription_service import load_transcript_segments
@@ -117,29 +122,31 @@ def _hook_strength(window_segments: list[dict], start_time: float) -> float:
     return score
 
 
-def _combat_sports_signal(window_text: str, opening_text: str) -> float:
+def _profile_sports_signal(window_text: str, opening_text: str, content_profile: str) -> float:
+    climax_terms = PROFILE_CLIMAX_TERMS.get(content_profile, set())
+    analysis_terms = PROFILE_ANALYSIS_TERMS.get(content_profile, set())
     lowered = window_text.lower()
     opening_lowered = opening_text.lower()
-    finish_score = sum(1 for term in COMBAT_SPORTS_FINISH_TERMS if term in lowered) * 3.2
-    analysis_score = sum(1 for term in COMBAT_SPORTS_ANALYSIS_TERMS if term in lowered) * 1.7
-    early_impact_score = sum(1 for term in COMBAT_SPORTS_FINISH_TERMS if term in opening_lowered) * 2.4
+    finish_score = sum(1 for term in climax_terms if term in lowered) * 3.2
+    analysis_score = sum(1 for term in analysis_terms if term in lowered) * 1.7
+    early_impact_score = sum(1 for term in climax_terms if term in opening_lowered) * 2.4
     name_like_score = len(re.findall(r"\b[A-Z][a-z]{2,}\b", window_text)) * 0.5
     return finish_score + analysis_score + early_impact_score + name_like_score
 
 
-def _combat_sports_finish_payoff(window_segments: list[dict]) -> float:
+def _profile_finish_payoff(window_segments: list[dict], content_profile: str) -> float:
     if not window_segments:
         return 0.0
     final_span = max(1, min(2, len(window_segments)))
     final_text = " ".join(segment["text"] for segment in window_segments[-final_span:]).lower()
-    payoff_terms = COMBAT_SPORTS_FINISH_TERMS.union({"wave-off", "finish", "dropped", "rocked", "hurt", "끝", "마무리"})
+    payoff_terms = PROFILE_CLIMAX_TERMS.get(content_profile, set()).union({"winner", "highlight", "결정적", "레전드", "finish", "끝", "마무리"})
     payoff_hits = sum(1 for term in payoff_terms if term in final_text)
     return payoff_hits * 2.8
 
 
-def _combat_sports_opening_burst(window_segments: list[dict]) -> float:
+def _profile_opening_burst(window_segments: list[dict], content_profile: str) -> float:
     opening_text = " ".join(segment["text"] for segment in window_segments[:2]).lower()
-    opening_terms = COMBAT_SPORTS_FINISH_TERMS.union({"watch", "look", "exact", "moment", "여기", "바로", "이 장면"})
+    opening_terms = PROFILE_CLIMAX_TERMS.get(content_profile, set()).union({"watch", "look", "exact", "moment", "여기", "바로", "이 장면"})
     opening_hits = sum(1 for term in opening_terms if term in opening_text)
     return opening_hits * 2.4
 
@@ -164,9 +171,12 @@ def score_candidate_window(
     clean_end = _has_clean_end(window_segments[-1], next_segment)
     opening_text = " ".join(segment["text"] for segment in window_segments if segment["start"] - window_segments[0]["start"] <= 3.0)
 
-    duration_score = max(0.0, 25 - abs(32 - duration) * 0.9)
+    ideal_duration = PROFILE_IDEAL_DURATION.get(content_profile, PROFILE_IDEAL_DURATION[CONTENT_PROFILE_GENERAL])
+    duration_score = max(0.0, 25 - abs(ideal_duration - duration) * 0.9)
     if content_profile == CONTENT_PROFILE_COMBAT_SPORTS:
-        duration_score = max(0.0, 28 - abs(21 - duration) * 1.1)
+        duration_score = max(0.0, 28 - abs(ideal_duration - duration) * 1.1)
+    elif is_sports_content_profile(content_profile):
+        duration_score = max(0.0, 27 - abs(ideal_duration - duration) * 1.0)
     density_score = min(18.0, density * 2.2)
     hook_score = _hook_strength(window_segments, window_segments[0]["start"])
     emotion_score = _contains_keywords(text, EMOTION_KEYWORDS["en"] + EMOTION_KEYWORDS["ko"]) * 2.5
@@ -178,16 +188,16 @@ def score_candidate_window(
     filler_penalty = 5 if _starts_with_filler(window_segments[0]["text"]) else 0
     mid_sentence_penalty = 4 if _looks_like_mid_sentence(window_segments[0]["text"]) else 0
     density_penalty = 10 if density < 2.2 else 0
-    combat_signal = _combat_sports_signal(text, opening_text) if content_profile == CONTENT_PROFILE_COMBAT_SPORTS else 0.0
+    sports_signal = _profile_sports_signal(text, opening_text, content_profile) if is_sports_content_profile(content_profile) else 0.0
     combat_penalty = 0.0
-    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration > 34:
-        combat_penalty += (duration - 34) * 1.5
-    combat_finish_score = _combat_sports_finish_payoff(window_segments) if content_profile == CONTENT_PROFILE_COMBAT_SPORTS else 0.0
-    combat_opening_score = _combat_sports_opening_burst(window_segments) if content_profile == CONTENT_PROFILE_COMBAT_SPORTS else 0.0
-    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration > 22:
-        combat_penalty += (duration - 22) * 1.4
-    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS and duration < 9:
-        combat_penalty += (9 - duration) * 3.5
+    if is_sports_content_profile(content_profile):
+        minimum_duration, maximum_duration = PROFILE_DURATION_RANGES.get(content_profile, (20, 45))
+        if duration > maximum_duration:
+            combat_penalty += (duration - maximum_duration) * 1.4
+        if duration < minimum_duration:
+            combat_penalty += (minimum_duration - duration) * 3.4
+    sports_finish_score = _profile_finish_payoff(window_segments, content_profile) if is_sports_content_profile(content_profile) else 0.0
+    sports_opening_score = _profile_opening_burst(window_segments, content_profile) if is_sports_content_profile(content_profile) else 0.0
 
     score = (
         duration_score
@@ -196,9 +206,9 @@ def score_candidate_window(
         + emotion_score
         + comparison_score
         + list_score
-        + combat_signal
-        + combat_finish_score
-        + combat_opening_score
+        + sports_signal
+        + sports_finish_score
+        + sports_opening_score
     )
     score -= gap_penalty + start_penalty + end_penalty + filler_penalty + mid_sentence_penalty + density_penalty + combat_penalty
     return round(max(score, 0.0), 3)
@@ -207,13 +217,8 @@ def score_candidate_window(
 def _iter_candidate_windows(segments: list[dict], content_profile: str) -> list[CandidateWindow]:
     windows: list[CandidateWindow] = []
     total_runtime = segments[-1]["end"] - segments[0]["start"]
-    preferred_targets = [20, 24, 28, 32, 36, 40, 45]
-    minimum_duration = 20
-    maximum_duration = 45
-    if content_profile == CONTENT_PROFILE_COMBAT_SPORTS:
-        preferred_targets = [9, 11, 13, 15, 18, 21]
-        minimum_duration = 9
-        maximum_duration = 24
+    preferred_targets = PROFILE_TARGET_WINDOWS.get(content_profile, PROFILE_TARGET_WINDOWS[CONTENT_PROFILE_GENERAL])
+    minimum_duration, maximum_duration = PROFILE_DURATION_RANGES.get(content_profile, PROFILE_DURATION_RANGES[CONTENT_PROFILE_GENERAL])
     fallback_targets = [16, 18] if total_runtime <= 24 else []
     for start_index, segment in enumerate(segments):
         start_time = float(segment["start"])
