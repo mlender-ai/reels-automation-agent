@@ -78,6 +78,24 @@ def _escape_subtitle_path(subtitle_path: Path) -> str:
     return raw.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
 
+def _input_has_audio(input_path: str | Path) -> bool:
+    command = [
+        settings.ffprobe_binary,
+        "-hide_banner",
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index",
+        "-of",
+        "csv=p=0",
+        str(Path(input_path).resolve()),
+    ]
+    completed = _run_command(command, "Unable to inspect source audio")
+    return bool(completed.stdout.strip())
+
+
 def export_vertical_clip(
     input_path: str | Path,
     output_path: str | Path,
@@ -87,6 +105,11 @@ def export_vertical_clip(
     preset_style: str,
     overlay_assets: list[RenderedOverlayAsset] | None = None,
     burn_in_subtitles: bool = True,
+    narration_path: str | Path | None = None,
+    background_music_path: str | Path | None = None,
+    source_audio_volume: float = 0.16,
+    narration_volume: float = 1.0,
+    background_music_volume: float = 0.13,
 ) -> None:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +128,9 @@ def export_vertical_clip(
             subtitle_filter = ""
 
         overlay_assets = overlay_assets or []
+        has_source_audio = _input_has_audio(input_path)
+        has_narration = narration_path is not None and Path(narration_path).exists()
+        has_bgm = background_music_path is not None and Path(background_music_path).exists()
         filter_parts = [
             "scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,"
@@ -122,19 +148,64 @@ def export_vertical_clip(
             "-i",
             str(Path(input_path).resolve()),
         ]
-        if overlay_assets:
-            filter_chain = [f"[0:v]{filter_parts[0]}[v0]"]
+        input_index = 1
+        filter_chain: list[str] = []
+        current_video_label = "v0"
+        needs_filter_complex = bool(overlay_assets or has_narration or has_bgm)
+
+        if needs_filter_complex:
+            filter_chain.append(f"[0:v]{filter_parts[0]}[{current_video_label}]")
             for asset in overlay_assets:
                 command.extend(["-i", str(asset.path.resolve())])
-            current_label = "v0"
-            for index, asset in enumerate(overlay_assets, start=1):
-                next_label = f"v{index}"
+            for asset_offset, asset in enumerate(overlay_assets, start=1):
+                next_label = f"v{asset_offset}"
                 enable = ""
                 if asset.end is not None:
                     asset_start = 0.0 if asset.start is None else asset.start
                     enable = f":enable='between(t,{asset_start:.2f},{asset.end:.2f})'"
-                filter_chain.append(f"[{current_label}][{index}:v]overlay={asset.x}:{asset.y}{enable}[{next_label}]")
-                current_label = next_label
+                filter_chain.append(f"[{current_video_label}][{asset_offset}:v]overlay={asset.x}:{asset.y}{enable}[{next_label}]")
+                current_video_label = next_label
+            input_index += len(overlay_assets)
+            narration_input_index = None
+            bgm_input_index = None
+            if has_narration:
+                command.extend(["-i", str(Path(narration_path).resolve())])
+                narration_input_index = input_index
+                input_index += 1
+            if has_bgm:
+                command.extend(["-i", str(Path(background_music_path).resolve())])
+                bgm_input_index = input_index
+                input_index += 1
+
+            audio_labels: list[str] = []
+            if has_source_audio:
+                filter_chain.append(
+                    f"[0:a]volume={source_audio_volume:.2f},aresample=async=1:first_pts=0[a_src]"
+                )
+                audio_labels.append("[a_src]")
+            if narration_input_index is not None:
+                filter_chain.append(
+                    f"[{narration_input_index}:a]volume={narration_volume:.2f},aresample=async=1:first_pts=0,adelay=260:all=1[a_tts]"
+                )
+                audio_labels.append("[a_tts]")
+            if bgm_input_index is not None:
+                fade_out_start = max(duration - 1.1, 0.0)
+                filter_chain.append(
+                    f"[{bgm_input_index}:a]volume={background_music_volume:.2f},aresample=async=1:first_pts=0,"
+                    f"afade=t=in:st=0:d=0.7,afade=t=out:st={fade_out_start:.2f}:d=0.9[a_bgm]"
+                )
+                audio_labels.append("[a_bgm]")
+
+            final_audio_label = None
+            if audio_labels:
+                if len(audio_labels) == 1:
+                    final_audio_label = audio_labels[0]
+                else:
+                    final_audio_label = "[aout]"
+                    filter_chain.append(
+                        f"{''.join(audio_labels)}amix=inputs={len(audio_labels)}:dropout_transition=0:normalize=0[aout]"
+                    )
+
             command.extend(
                 [
                     "-t",
@@ -142,11 +213,13 @@ def export_vertical_clip(
                     "-filter_complex",
                     ";".join(filter_chain),
                     "-map",
-                    f"[{current_label}]",
-                    "-map",
-                    "0:a?",
+                    f"[{current_video_label}]",
                 ]
             )
+            if final_audio_label:
+                command.extend(["-map", final_audio_label])
+            else:
+                command.extend(["-map", "0:a?"])
         else:
             command.extend(
                 [

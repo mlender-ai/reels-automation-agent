@@ -10,6 +10,7 @@ from app.models.clip_candidate import ClipCandidate
 from app.models.export import Export
 from app.models.project import Project
 from app.models.transcript import Transcript
+from app.services.audio_render_service import build_voiceover_copy, render_background_music, render_voiceover_audio
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.overlay_render_service import build_story_overlay_assets
 from app.services.shorts_story_service import build_story_package_from_clip
@@ -73,6 +74,8 @@ def export_clip(
         subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
         validate_generated_subtitle_file(subtitle_file)
         overlay_assets = []
+        narration_file = None
+        background_music_file = None
         clip_transcript_segments = extract_clip_transcript_segments(clip, transcript)
         try:
             story_package = build_story_package_from_clip(
@@ -87,6 +90,9 @@ def export_clip(
                 story_package,
                 subtitle_cues=build_subtitle_overlay_cues(clip, transcript),
             )
+            voiceover_copy = build_voiceover_copy(clip, story_package)
+            narration_file = render_voiceover_audio(project.id, clip.id, base_name, voiceover_copy)
+            background_music_file = render_background_music(project.id, clip.id, base_name, clip.duration)
         except Exception as exc:  # pragma: no cover - best effort styling fallback
             logger.warning("Story overlay generation skipped. project_id=%s clip_id=%s detail=%s", project.id, clip.id, exc)
         export_vertical_clip(
@@ -98,6 +104,8 @@ def export_clip(
             preset_style=build_subtitle_style(clip.subtitle_preset),
             overlay_assets=overlay_assets,
             burn_in_subtitles=not bool(overlay_assets),
+            narration_path=narration_file,
+            background_music_path=background_music_file,
         )
         try:
             extract_thumbnail(output_file, thumbnail_file, capture_time=min(1.2, max(0.25, clip.duration / 3)))

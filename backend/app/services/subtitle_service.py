@@ -118,26 +118,17 @@ def write_clip_srt(project_id: int, clip: ClipCandidate, transcript: Transcript,
 def build_subtitle_overlay_cues(clip: ClipCandidate, transcript: Transcript) -> list[dict]:
     clip_segments = extract_clip_transcript_segments(clip, transcript)
     merged_segments = _merge_segments(clip_segments, clip.subtitle_preset)
-    rules = PRESET_WRAP_RULES.get(clip.subtitle_preset, PRESET_WRAP_RULES[SubtitlePreset.clean.value])
 
     cues: list[dict] = []
-    previous_end = 0.0
+    previous_end = 2.1
+    selected_segments = merged_segments[:3]
 
-    description_text = " ".join((clip.suggested_description or "").split())
-    if description_text:
-        opening_copy = description_text.split(".")[0].strip()
-        if opening_copy:
-            wrapped_opening = _wrap_text(opening_copy, max_line_length=rules["line_length"])
-            if wrapped_opening:
-                cues.append({"start": 0.8, "end": min(max(3.2, clip.duration * 0.28), clip.duration - 0.6), "text": wrapped_opening})
-                previous_end = cues[-1]["end"]
-
-    for segment in merged_segments:
-        wrapped_text = _wrap_text(segment["text"], max_line_length=rules["line_length"])
+    for segment in selected_segments:
+        wrapped_text = _wrap_text(segment["text"], max_line_length=15)
         if not wrapped_text:
             continue
-        start_time = max(segment["start"], previous_end + 0.06)
-        end_time = max(segment["end"], start_time + 0.9)
+        start_time = max(segment["start"], previous_end + 0.18)
+        end_time = max(segment["end"], start_time + 1.3)
         cues.append({"start": round(start_time, 2), "end": round(end_time, 2), "text": wrapped_text})
         previous_end = end_time
     return cues

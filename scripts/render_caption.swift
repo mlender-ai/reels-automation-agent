@@ -76,6 +76,74 @@ func drawBorder(in rect: NSRect, radius: CGFloat) {
 }
 
 switch style {
+case "shorts-clean-hero":
+    let backgroundRect = NSRect(x: 0, y: 0, width: width, height: height)
+    let background = NSBezierPath(rect: backgroundRect)
+    color(from: backgroundHex, alpha: backgroundAlpha).setFill()
+    background.fill()
+
+    let parts = text.components(separatedBy: "||")
+    let primary = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? text
+    let secondary = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+
+    let titleParagraph = NSMutableParagraphStyle()
+    titleParagraph.alignment = .center
+    titleParagraph.lineBreakMode = .byWordWrapping
+    titleParagraph.lineSpacing = -3
+
+    let heavyShadow = NSShadow()
+    heavyShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.95)
+    heavyShadow.shadowBlurRadius = 12
+    heavyShadow.shadowOffset = NSSize(width: 0, height: -3)
+
+    let primaryAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: titleParagraph,
+        .shadow: heavyShadow,
+    ]
+    (primary as NSString).draw(
+        in: NSRect(x: horizontalPadding, y: 132, width: width - horizontalPadding * 2, height: 76),
+        withAttributes: primaryAttributes
+    )
+
+    if !secondary.isEmpty {
+        let secondaryAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: fontSize - 2, weight: .black),
+            .foregroundColor: color(from: accentHex, alpha: 1.0),
+            .paragraphStyle: titleParagraph,
+            .shadow: heavyShadow,
+        ]
+        (secondary as NSString).draw(
+            in: NSRect(x: horizontalPadding, y: 56, width: width - horizontalPadding * 2, height: 76),
+            withAttributes: secondaryAttributes
+        )
+    }
+
+case "shorts-clean-caption":
+    let paragraphStyle = NSMutableParagraphStyle()
+    paragraphStyle.alignment = .center
+    paragraphStyle.lineBreakMode = .byWordWrapping
+    paragraphStyle.lineSpacing = 2
+
+    let subtitleShadow = NSShadow()
+    subtitleShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.98)
+    subtitleShadow.shadowBlurRadius = 18
+    subtitleShadow.shadowOffset = NSSize(width: 0, height: -4)
+
+    let subtitleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: paragraphStyle,
+        .shadow: subtitleShadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.98),
+        .strokeWidth: -5.0,
+    ]
+    (text as NSString).draw(
+        in: NSRect(x: horizontalPadding, y: verticalPadding, width: width - horizontalPadding * 2, height: height - verticalPadding * 2),
+        withAttributes: subtitleAttributes
+    )
+
 case "shorts-punch-title":
     let cardRect = NSRect(x: 0, y: 0, width: width, height: height)
     let card = NSBezierPath(roundedRect: cardRect, xRadius: cornerRadius, yRadius: cornerRadius)
