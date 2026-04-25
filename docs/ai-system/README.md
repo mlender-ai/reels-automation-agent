@@ -89,9 +89,10 @@ When a new agent joins this repo, it should usually:
 
 1. read `README.md`
 2. read `docs/ai-system/CURRENT_STATE.md`
-3. inspect the latest changed files in `backend/app/services/`
-4. verify local backend/frontend are runnable
-5. test one real project flow before making product changes
+3. read `docs/ai-system/NEXT_AGENT_BRIEF.md`
+4. inspect the latest changed files in `backend/app/services/`
+5. verify local backend/frontend are runnable
+6. test one real project flow before making product changes
 
 This reduces the chance of working from stale assumptions.
 

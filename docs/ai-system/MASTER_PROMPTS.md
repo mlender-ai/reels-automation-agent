@@ -31,6 +31,10 @@ Use to stabilize the product and tighten quality:
 - candidate review workflow polish
 - YouTube ingest hardening
 
+Companion continuation prompt:
+
+- `prompts/continue_live_shorts_polish.md`
+
 ### 3. `scale_system`
 
 Use to extend the system without breaking local-first constraints:
@@ -57,8 +61,9 @@ If a new session is picking up active work today, the default reading order shou
 
 1. `README.md`
 2. `docs/ai-system/CURRENT_STATE.md`
-3. `docs/ai-system/HANDOFF_TEMPLATE.md`
-4. relevant current product services under `backend/app/services/`
+3. `docs/ai-system/NEXT_AGENT_BRIEF.md`
+4. `docs/ai-system/HANDOFF_TEMPLATE.md`
+5. relevant current product services under `backend/app/services/`
 
 If the task is product quality work, start with `improve_system`.
 If the task is repo automation work, start with `self_improve_repo`.

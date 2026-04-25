@@ -2,6 +2,10 @@
 
 This document is the concrete handoff snapshot for the current repository state.
 
+For a ready-to-paste continuation prompt, also open:
+
+- `docs/ai-system/NEXT_AGENT_BRIEF.md`
+
 ## Product State
 
 The local app is actively working with these flows:

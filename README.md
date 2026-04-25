@@ -35,8 +35,13 @@ The repository is no longer just a scaffold. The current working baseline includ
 The active continuation docs for another agent are:
 
 - `docs/ai-system/CURRENT_STATE.md`
+- `docs/ai-system/NEXT_AGENT_BRIEF.md`
 - `docs/ai-system/HANDOFF_TEMPLATE.md`
 - `docs/ai-system/MASTER_PROMPTS.md`
+
+Useful continuation prompt:
+
+- `prompts/continue_live_shorts_polish.md`
 
 ## Current Goal
 
@@ -300,6 +305,7 @@ If another agent picks this repo up now, the highest-value next steps are:
 For exact handoff context, open:
 
 - `docs/ai-system/CURRENT_STATE.md`
+- `docs/ai-system/NEXT_AGENT_BRIEF.md`
 
 ## AI Organization
 
