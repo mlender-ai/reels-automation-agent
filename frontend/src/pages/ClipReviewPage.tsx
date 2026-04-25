@@ -1,4 +1,4 @@
-import { Check, Clock3, Download, ExternalLink, RotateCcw, Save, Send, SkipBack, SkipForward, X } from "lucide-react";
+import { Check, Download, ExternalLink, RotateCcw, Save, Send, SkipBack, SkipForward, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -304,271 +304,33 @@ export function ClipReviewPage() {
     return <EmptyState title="클립을 찾을 수 없습니다" description="로컬 API에서 이 클립을 불러오지 못했습니다." />;
   }
 
-  const preflightItems = [
-    { label: "클립 승인됨", ready: clip.status === "approved" || clip.status === "exported" },
-    { label: "타이밍 유효", ready: !validationError },
-    { label: "메타데이터 입력 완료", ready: Boolean(form.suggested_title.trim() && form.suggested_description.trim() && form.suggested_hashtags.trim()) },
-    { label: "내보내기 준비 완료", ready: clip.status === "approved" || clip.status === "exported" },
-    { label: "게시 큐 등록 가능", ready: Boolean(clip.latest_export?.output_url) && !activePublishJob },
-  ];
+  const metaCompleted = Boolean(form.suggested_title.trim() && form.suggested_description.trim() && form.suggested_hashtags.trim());
+  const canExport = (clip.status === "approved" || clip.status === "exported") && !validationError;
+  const canPublish = Boolean(clip.latest_export?.output_url) && !activePublishJob;
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[0.85fr,1.15fr]">
-      <section className="space-y-6">
-        <div className="rounded-[36px] border border-white/10 bg-white/[0.04] p-5 shadow-panel">
-          <div className="mx-auto max-w-sm">
-            <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-black shadow-panel">
-              <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4">
-                <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white">{formatDuration(clip.duration)}</span>
-                <StatusBadge status={activeExportJob?.status ?? clip.status} />
-              </div>
-              <div className="aspect-[9/16] bg-black">
-                {previewUrl ? (
-                  <video
-                    key={previewUrl}
-                    controls
-                    ref={sourcePreviewRef}
-                    onLoadedMetadata={() => {
-                      if (!clip.latest_export?.output_url && sourcePreviewRef.current) {
-                        sourcePreviewRef.current.currentTime = Math.max(0, form.start_time);
-                      }
-                    }}
-                    className="h-full w-full object-cover"
-                    src={previewUrl}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-slate-500">미리보기를 사용할 수 없습니다</div>
-                )}
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => seekPreviewTo(form.start_time)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-              >
-                <SkipBack className="h-4 w-4" />
-                시작 지점으로 이동
-              </button>
-              <button
-                type="button"
-                onClick={() => seekPreviewTo(Math.max(form.start_time, form.end_time - 1))}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-              >
-                <SkipForward className="h-4 w-4" />
-                끝 지점으로 이동
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
-          <h3 className="font-display text-xl font-semibold text-white">빠른 확인</h3>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-2xl bg-black/20 p-4">
-                <p className="text-xs text-slate-500">시작</p>
-                <p className="mt-2 font-semibold text-white">{form.start_time.toFixed(2)}s</p>
-              </div>
-            <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">종료</p>
-              <p className="mt-2 font-semibold text-white">{form.end_time.toFixed(2)}s</p>
-            </div>
-            <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">최근 내보내기</p>
-              <p className="mt-2 font-semibold text-white">{clip.latest_export?.status ?? "없음"}</p>
-            </div>
-            <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">오프닝 훅</p>
-              <p className="mt-2 font-semibold text-white">{clip.analysis_headline ?? "자동 생성 중"}</p>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => nudgeBoundary("start_time", -0.5)}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-            >
-              시작 -0.5초
-            </button>
-            <button
-              type="button"
-              onClick={() => nudgeBoundary("start_time", 0.5)}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-            >
-              시작 +0.5초
-            </button>
-            <button
-              type="button"
-              onClick={() => nudgeBoundary("end_time", -0.5)}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-            >
-              종료 -0.5초
-            </button>
-            <button
-              type="button"
-              onClick={() => nudgeBoundary("end_time", 0.5)}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-            >
-              종료 +0.5초
-            </button>
-          </div>
-          {clip.latest_export?.output_url ? (
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/exports")}
-                className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-              >
-                내보내기 목록 보기
-              </button>
-              <a
-                href={resolveMediaUrl(clip.latest_export.output_url)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15"
-              >
-                <ExternalLink className="h-4 w-4" />
-                결과 영상 열기
-              </a>
-            </div>
-          ) : null}
-
-          {latestFailedExportJob ? (
-            <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-4 text-sm text-rose-100">
-              <p className="font-semibold">최근 내보내기 작업이 실패했습니다</p>
-              <p className="mt-2 leading-6 text-white/85">
-                {latestFailedExportJob.error_detail ?? "FFmpeg나 원본 파일 상태를 확인한 뒤 다시 내보내기를 시도해 주세요."}
-              </p>
-              <button
-                type="button"
-                onClick={() => void handleExport()}
-                disabled={Boolean(activeExportJob) || Boolean(validationError)}
-                className="mt-4 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                내보내기 다시 시도
-              </button>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="font-display text-xl font-semibold text-white">내보내기 사전 점검</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-400">백그라운드 렌더링이나 게시 큐 등록을 시작하기 전에 이 체크리스트를 확인하세요.</p>
-            </div>
-            <Clock3 className="mt-1 h-5 w-5 text-slate-400" />
-          </div>
-          <div className="mt-5 space-y-3">
-            {preflightItems.map((item) => (
-              <div key={item.label} className="flex items-center justify-between rounded-2xl bg-black/20 px-4 py-3">
-                <span className="text-sm text-white">{item.label}</span>
-                <StatusBadge status={item.ready ? "completed" : "failed"} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-6">
-        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
+    <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="rounded-[34px] border border-white/10 bg-white/[0.04] p-4 shadow-panel lg:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">리뷰</p>
-              <h3 className="mt-3 font-display text-3xl font-semibold text-white">{project.title}</h3>
-              <p className="mt-2 text-sm text-slate-400">내보내기 전에 타이밍, 메타데이터, 자막 스타일을 세밀하게 조정하세요.</p>
-            </div>
-            <StatusBadge status={clip.status} />
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-[0.9fr,1.1fr]">
-            <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.08] p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/75">추천 포맷</p>
-              <p className="mt-2 text-lg font-semibold text-white">{clip.recommended_format ?? "기본 포맷"}</p>
-              <p className="mt-2 text-sm leading-6 text-cyan-50/85">
-                {clip.content_profile_label ?? "일반"} · {clip.virality_label ?? "검토 중"} · {clip.timeline_label ?? "구간 정보 없음"}
+            <div className="max-w-2xl">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">바로 확인</p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-white lg:text-3xl">
+                {form.suggested_title || clip.analysis_headline || project.title}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                {formatDuration(clip.duration)} · {form.start_time.toFixed(1)}초부터 {form.end_time.toFixed(1)}초까지
               </p>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">왜 이 후보인가</p>
-              <p className="mt-2 text-sm leading-6 text-white/90">{clip.selection_reason ?? "현재 후보의 핵심 신호를 계산하는 중입니다."}</p>
-              {(clip.selection_signals ?? []).length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(clip.selection_signals ?? []).map((signal) => (
-                    <span key={signal} className="rounded-full bg-white/6 px-3 py-1 text-xs text-slate-200">
-                      {signal}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={clip.status} />
+              {activeExportJob ? <StatusBadge status={activeExportJob.status} /> : null}
             </div>
           </div>
-
-          <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">이번 버전에서 들어가는 텍스트</p>
-            <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "오프닝 훅 준비 중"}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              상단 훅 한 줄만 약 2초 동안 짧게 노출됩니다. 하단 서브타이틀이나 분석 라벨은 이번 스타일에서 넣지 않습니다.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">시작 시간</span>
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={form.start_time}
-                onChange={(event) => setForm((current) => ({ ...current, start_time: Number(event.target.value) }))}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">종료 시간</span>
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={form.end_time}
-                onChange={(event) => setForm((current) => ({ ...current, end_time: Number(event.target.value) }))}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
-              />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">제목</span>
-              <input
-                value={form.suggested_title}
-                onChange={(event) => setForm((current) => ({ ...current, suggested_title: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
-              />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">설명</span>
-              <textarea
-                rows={4}
-                value={form.suggested_description}
-                onChange={(event) => setForm((current) => ({ ...current, suggested_description: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
-              />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">해시태그</span>
-              <input
-                value={form.suggested_hashtags}
-                onChange={(event) => setForm((current) => ({ ...current, suggested_hashtags: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
-              />
-            </label>
-          </div>
-
-          {validationError ? (
-            <div className="mt-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{validationError}</div>
-          ) : null}
 
           {actionNotice ? (
             <div
-              className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+              className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
                 actionNotice.tone === "error"
                   ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
                   : actionNotice.tone === "success"
@@ -577,99 +339,333 @@ export function ClipReviewPage() {
               }`}
             >
               <p className="font-semibold">{actionNotice.title}</p>
-              <p className="mt-2 leading-6 text-white/85">{actionNotice.description}</p>
+              <p className="mt-1 leading-6 text-white/85">{actionNotice.description}</p>
             </div>
           ) : null}
 
-          {latestFailedPublishJob ? (
-            <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-              <p className="font-semibold">최근 게시 큐 등록이 실패했습니다</p>
-              <p className="mt-2 leading-6 text-white/85">
-                {latestFailedPublishJob.error_detail ?? "메타데이터와 최신 export 자산을 점검한 뒤 다시 게시 큐에 넣어 주세요."}
-              </p>
-            </div>
-          ) : null}
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_200px]">
+            <div className="rounded-[30px] border border-white/10 bg-black/35 p-4">
+              <div className="flex flex-col justify-between">
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="w-full max-w-[320px]">
+                    <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-black shadow-panel">
+                      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4">
+                        <span className="rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white">{formatDuration(clip.duration)}</span>
+                        <span className="rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white">9:16</span>
+                      </div>
+                      <div className="aspect-[9/16] bg-black">
+                        {previewUrl ? (
+                          <video
+                            key={previewUrl}
+                            controls
+                            ref={sourcePreviewRef}
+                            onLoadedMetadata={() => {
+                              if (!clip.latest_export?.output_url && sourcePreviewRef.current) {
+                                sourcePreviewRef.current.currentTime = Math.max(0, form.start_time);
+                              }
+                            }}
+                            className="h-full w-full object-cover"
+                            src={previewUrl}
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-slate-500">미리보기를 사용할 수 없습니다</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || Boolean(validationError) || Boolean(activeExportJob)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? "저장 중..." : "저장"}
-            </button>
-            <button
-              type="button"
-              onClick={handleApprove}
-              disabled={saving || statusSubmitting !== null || Boolean(validationError) || Boolean(activeExportJob)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20"
-            >
-              <Check className="h-4 w-4" />
-              {statusSubmitting === "approve" ? "승인 중..." : "승인"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setRejectOpen(true)}
-              disabled={saving || statusSubmitting !== null || Boolean(activeExportJob)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
-            >
-              <X className="h-4 w-4" />
-              반려
-            </button>
-            <button
-              type="button"
-              onClick={handleResetReview}
-              disabled={saving || statusSubmitting !== null || clip.status === "pending" || Boolean(activeExportJob)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RotateCcw className="h-4 w-4" />
-              검토 상태 되돌리기
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={(clip.status !== "approved" && clip.status !== "exported") || Boolean(activeExportJob) || Boolean(validationError)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" />
-              {activeExportJob ? `${activeExportJob.progress}% · 내보내는 중` : "1080x1920으로 내보내기"}
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 className="font-display text-xl font-semibold text-white">모의 게시</h3>
-              <p className="mt-2 text-sm text-slate-400">내보낸 클립을 모의 플랫폼 어댑터에 등록합니다. 실제 업로드는 v1 범위에서 의도적으로 제외했습니다.</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => seekPreviewTo(form.start_time)}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]"
+                  >
+                    <SkipBack className="h-4 w-4" />
+                    시작 지점 보기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => seekPreviewTo(Math.max(form.start_time, form.end_time - 1))}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]"
+                  >
+                    <SkipForward className="h-4 w-4" />
+                    끝 지점 보기
+                  </button>
+                </div>
+              </div>
             </div>
-            <StatusBadge status={clip.latest_export?.output_url ? "ready" : "not_connected"} />
+
+            <div className="grid content-start gap-3">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">이번 버전</p>
+                <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "오프닝 훅 준비 중"}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-400">상단 훅 한 줄만 짧게 노출됩니다. 보조 배너와 서브타이틀은 넣지 않습니다.</p>
+              </div>
+              <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">포맷</p>
+                  <p className="mt-2 font-semibold text-white">{clip.recommended_format ?? "기본 포맷"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">점수</p>
+                  <p className="mt-2 font-semibold text-white">{clip.score.toFixed(1)}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">상태</p>
+                  <div className="mt-2">
+                    <StatusBadge status={clip.status} />
+                  </div>
+                </div>
+              </div>
+              {clip.latest_export?.output_url ? (
+                <div className="grid gap-2">
+                  <a
+                    href={resolveMediaUrl(clip.latest_export.output_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    결과 영상 열기
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/exports")}
+                    className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                  >
+                    내보내기 목록 보기
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
-          <div className="mt-5 flex flex-wrap gap-3">
-            {["youtube", "instagram", "tiktok"].map((platform) => (
+        </section>
+
+        <aside className="xl:sticky xl:top-[92px]">
+          <div className="max-h-[calc(100vh-7rem)] space-y-4 overflow-y-auto rounded-[34px] border border-white/10 bg-white/[0.04] p-5 shadow-panel">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">작업 패널</p>
+                <h3 className="mt-2 font-display text-xl font-semibold text-white">{project.title}</h3>
+              </div>
+              <StatusBadge status={clip.status} />
+            </div>
+
+            <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl bg-black/25 p-3">
+                  <p className="text-xs text-slate-500">시작</p>
+                  <p className="mt-2 font-semibold text-white">{form.start_time.toFixed(1)}s</p>
+                </div>
+                <div className="rounded-2xl bg-black/25 p-3">
+                  <p className="text-xs text-slate-500">종료</p>
+                  <p className="mt-2 font-semibold text-white">{form.end_time.toFixed(1)}s</p>
+                </div>
+                <div className="rounded-2xl bg-black/25 p-3">
+                  <p className="text-xs text-slate-500">메타데이터</p>
+                  <p className="mt-2 font-semibold text-white">{metaCompleted ? "입력됨" : "미완료"}</p>
+                </div>
+                <div className="rounded-2xl bg-black/25 p-3">
+                  <p className="text-xs text-slate-500">게시 가능</p>
+                  <p className="mt-2 font-semibold text-white">{clip.latest_export?.output_url ? "가능" : "먼저 export"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium text-slate-300">시작 시간</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={form.start_time}
+                    onChange={(event) => setForm((current) => ({ ...current, start_time: Number(event.target.value) }))}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium text-slate-300">종료 시간</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={form.end_time}
+                    onChange={(event) => setForm((current) => ({ ...current, end_time: Number(event.target.value) }))}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => nudgeBoundary("start_time", -0.5)}
+                  className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  시작 -0.5초
+                </button>
+                <button
+                  type="button"
+                  onClick={() => nudgeBoundary("start_time", 0.5)}
+                  className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  시작 +0.5초
+                </button>
+                <button
+                  type="button"
+                  onClick={() => nudgeBoundary("end_time", -0.5)}
+                  className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  종료 -0.5초
+                </button>
+                <button
+                  type="button"
+                  onClick={() => nudgeBoundary("end_time", 0.5)}
+                  className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  종료 +0.5초
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">제목</span>
+                <input
+                  value={form.suggested_title}
+                  onChange={(event) => setForm((current) => ({ ...current, suggested_title: event.target.value }))}
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">설명</span>
+                <textarea
+                  rows={3}
+                  value={form.suggested_description}
+                  onChange={(event) => setForm((current) => ({ ...current, suggested_description: event.target.value }))}
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">해시태그</span>
+                <input
+                  value={form.suggested_hashtags}
+                  onChange={(event) => setForm((current) => ({ ...current, suggested_hashtags: event.target.value }))}
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
+                />
+              </label>
+            </div>
+
+            {validationError ? (
+              <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{validationError}</div>
+            ) : null}
+
+            {latestFailedExportJob ? (
+              <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-4 text-sm text-rose-100">
+                <p className="font-semibold">최근 내보내기 실패</p>
+                <p className="mt-2 leading-6 text-white/85">{latestFailedExportJob.error_detail ?? "원본 파일과 FFmpeg 상태를 확인해 주세요."}</p>
+              </div>
+            ) : null}
+
+            {latestFailedPublishJob ? (
+              <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-4 text-sm text-amber-50">
+                <p className="font-semibold">최근 게시 큐 실패</p>
+                <p className="mt-2 leading-6 text-white/85">{latestFailedPublishJob.error_detail ?? "최신 export와 메타데이터를 확인한 뒤 다시 시도해 주세요."}</p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3">
               <button
-                key={platform}
                 type="button"
-                disabled={!clip.latest_export?.output_url || Boolean(activePublishJob)}
-                onClick={() => handleQueuePublish(platform)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleSave}
+                disabled={saving || Boolean(validationError) || Boolean(activeExportJob)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:opacity-50"
               >
-                <Send className="h-4 w-4" />
-                {activePublishJob?.payload_json?.platform === platform ? `${activePublishJob.progress}% · 등록 중` : `${platform} 큐에 넣기`}
+                <Save className="h-4 w-4" />
+                {saving ? "저장 중..." : "저장"}
               </button>
-            ))}
-          </div>
-        </div>
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={saving || statusSubmitting !== null || Boolean(validationError) || Boolean(activeExportJob)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" />
+                {statusSubmitting === "approve" ? "승인 중..." : "승인"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={!canExport || Boolean(activeExportJob)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {activeExportJob ? `${activeExportJob.progress}% · 내보내는 중` : "숏츠 내보내기"}
+              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRejectOpen(true)}
+                  disabled={saving || statusSubmitting !== null || Boolean(activeExportJob)}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                  반려
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetReview}
+                  disabled={saving || statusSubmitting !== null || clip.status === "pending" || Boolean(activeExportJob)}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  되돌리기
+                </button>
+              </div>
+            </div>
 
-        <WorkflowJobList
-          jobs={relevantJobs}
-          title="클립 자동화 작업"
-          description="타이밍과 메타데이터를 계속 조정하는 동안 내보내기와 게시 작업은 백그라운드에서 이어집니다."
-          emptyTitle="이 클립의 내보내기 및 게시 작업이 여기에 표시됩니다."
-        />
-      </section>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">모의 게시</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">export가 끝난 뒤 플랫폼 큐에 넣을 수 있습니다.</p>
+                </div>
+                <StatusBadge status={clip.latest_export?.output_url ? "ready" : "not_connected"} />
+              </div>
+              <div className="mt-4 grid gap-2">
+                {["youtube", "instagram", "tiktok"].map((platform) => (
+                  <button
+                    key={platform}
+                    type="button"
+                    disabled={!canPublish}
+                    onClick={() => handleQueuePublish(platform)}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                    {activePublishJob?.payload_json?.platform === platform ? `${activePublishJob.progress}% · 등록 중` : `${platform} 큐에 넣기`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {relevantJobs.length ? (
+        <details className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">
+          <summary className="cursor-pointer text-sm font-medium text-white">자동화 작업 내역 보기</summary>
+          <div className="mt-4">
+            <WorkflowJobList
+              jobs={relevantJobs}
+              title="클립 자동화 작업"
+              description="내보내기와 게시 작업은 백그라운드에서 이어집니다."
+              emptyTitle="이 클립의 내보내기 및 게시 작업이 여기에 표시됩니다."
+            />
+          </div>
+        </details>
+      ) : null}
 
       <ConfirmModal
         open={rejectOpen}
