@@ -88,6 +88,11 @@ export type ClipCandidate = {
   selection_signals?: string[];
   timeline_label?: string | null;
   source_runtime_seconds?: number | null;
+  story_angle?: string;
+  analysis_headline?: string;
+  analysis_outline?: string[];
+  title_treatment?: string;
+  caption_treatment?: string;
   latest_export?: ExportRecord | null;
 };
 

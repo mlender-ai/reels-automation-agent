@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.services.overlay_render_service import RenderedOverlayAsset
 
 
 def _humanize_command_error(detail: str, error_prefix: str) -> str:
@@ -84,24 +85,32 @@ def export_vertical_clip(
     start_time: float,
     duration: float,
     preset_style: str,
+    overlay_assets: list[RenderedOverlayAsset] | None = None,
+    burn_in_subtitles: bool = True,
 ) -> None:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     subtitle_source = Path(subtitle_path)
-    if not subtitle_source.exists():
+    if burn_in_subtitles and not subtitle_source.exists():
         raise HTTPException(status_code=500, detail="Unable to export clip: subtitle file is missing before FFmpeg starts.")
     temporary_subtitle_copy: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(prefix="raa-subtitles-", suffix=".srt", delete=False) as handle:
-            temporary_subtitle_copy = Path(handle.name)
-        shutil.copy2(subtitle_source, temporary_subtitle_copy)
-        escaped_subtitle_path = _escape_subtitle_path(temporary_subtitle_copy)
-        vf = (
+        if burn_in_subtitles:
+            with tempfile.NamedTemporaryFile(prefix="raa-subtitles-", suffix=".srt", delete=False) as handle:
+                temporary_subtitle_copy = Path(handle.name)
+            shutil.copy2(subtitle_source, temporary_subtitle_copy)
+            escaped_subtitle_path = _escape_subtitle_path(temporary_subtitle_copy)
+            subtitle_filter = f",subtitles=filename='{escaped_subtitle_path}':force_style='{preset_style}'"
+        else:
+            subtitle_filter = ""
+
+        overlay_assets = overlay_assets or []
+        filter_parts = [
             "scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,"
-            "setsar=1,"
-            f"subtitles=filename='{escaped_subtitle_path}':force_style='{preset_style}'"
-        )
+            "setsar=1"
+            f"{subtitle_filter}"
+        ]
         command = [
             settings.ffmpeg_binary,
             "-y",
@@ -112,30 +121,64 @@ def export_vertical_clip(
             f"{start_time:.3f}",
             "-i",
             str(Path(input_path).resolve()),
-            "-t",
-            f"{duration:.3f}",
-            "-map",
-            "0:v:0",
-            "-map",
-            "0:a?",
-            "-vf",
-            vf,
-            "-c:v",
-            "libx264",
-            "-preset",
-            "medium",
-            "-crf",
-            "20",
-            "-pix_fmt",
-            "yuv420p",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-movflags",
-            "+faststart",
-            str(output.resolve()),
         ]
+        if overlay_assets:
+            filter_chain = [f"[0:v]{filter_parts[0]}[v0]"]
+            for asset in overlay_assets:
+                command.extend(["-i", str(asset.path.resolve())])
+            current_label = "v0"
+            for index, asset in enumerate(overlay_assets, start=1):
+                next_label = f"v{index}"
+                enable = ""
+                if asset.end is not None:
+                    asset_start = 0.0 if asset.start is None else asset.start
+                    enable = f":enable='between(t,{asset_start:.2f},{asset.end:.2f})'"
+                filter_chain.append(f"[{current_label}][{index}:v]overlay={asset.x}:{asset.y}{enable}[{next_label}]")
+                current_label = next_label
+            command.extend(
+                [
+                    "-t",
+                    f"{duration:.3f}",
+                    "-filter_complex",
+                    ";".join(filter_chain),
+                    "-map",
+                    f"[{current_label}]",
+                    "-map",
+                    "0:a?",
+                ]
+            )
+        else:
+            command.extend(
+                [
+                    "-t",
+                    f"{duration:.3f}",
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a?",
+                    "-vf",
+                    filter_parts[0],
+                ]
+            )
+        command.extend(
+            [
+                "-c:v",
+                "libx264",
+                "-preset",
+                "medium",
+                "-crf",
+                "20",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+                "-movflags",
+                "+faststart",
+                str(output.resolve()),
+            ]
+        )
         _run_command(command, "Unable to export clip")
     finally:
         if temporary_subtitle_copy is not None:

@@ -11,7 +11,9 @@ from app.models.export import Export
 from app.models.project import Project
 from app.models.transcript import Transcript
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
-from app.services.subtitle_service import build_subtitle_style, write_clip_srt
+from app.services.overlay_render_service import build_story_overlay_assets
+from app.services.shorts_story_service import build_story_package_from_clip
+from app.services.subtitle_service import build_subtitle_style, extract_clip_transcript_segments, write_clip_srt
 from app.services.validation_service import validate_clip_metadata, validate_clip_window, validate_generated_subtitle_file
 from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
 
@@ -70,6 +72,16 @@ def export_clip(
         validate_clip_metadata(clip.suggested_title, clip.suggested_description, clip.suggested_hashtags, clip.subtitle_preset)
         subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
         validate_generated_subtitle_file(subtitle_file)
+        overlay_assets = []
+        try:
+            story_package = build_story_package_from_clip(
+                clip,
+                transcript_segments=extract_clip_transcript_segments(clip, transcript),
+                source_runtime_seconds=source_duration_seconds,
+            )
+            overlay_assets = build_story_overlay_assets(project.id, clip.id, base_name, story_package)
+        except Exception as exc:  # pragma: no cover - best effort styling fallback
+            logger.warning("Story overlay generation skipped. project_id=%s clip_id=%s detail=%s", project.id, clip.id, exc)
         export_vertical_clip(
             input_path=resolve_data_path(source_path),
             output_path=output_file,
@@ -77,6 +89,8 @@ def export_clip(
             start_time=clip.start_time,
             duration=clip.duration,
             preset_style=build_subtitle_style(clip.subtitle_preset),
+            overlay_assets=overlay_assets,
+            burn_in_subtitles=not bool(overlay_assets),
         )
         try:
             extract_thumbnail(output_file, thumbnail_file, capture_time=min(1.2, max(0.25, clip.duration / 3)))

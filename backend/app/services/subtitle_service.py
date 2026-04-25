@@ -42,6 +42,25 @@ def build_subtitle_style(preset: str) -> str:
     return SUBTITLE_STYLE_MAP.get(preset, SUBTITLE_STYLE_MAP[SubtitlePreset.clean.value])
 
 
+def extract_clip_transcript_segments(clip: ClipCandidate, transcript: Transcript) -> list[dict]:
+    segments = load_transcript_segments(transcript)
+    clip_segments: list[dict] = []
+    for segment in segments:
+        if segment["end"] <= clip.start_time or segment["start"] >= clip.end_time:
+            continue
+        clip_segments.append(
+            {
+                "start": max(segment["start"], clip.start_time) - clip.start_time,
+                "end": min(segment["end"], clip.end_time) - clip.start_time,
+                "text": " ".join(segment["text"].split()),
+            }
+        )
+
+    if clip_segments:
+        return clip_segments
+    return [{"start": 0.0, "end": min(clip.duration, 3.0), "text": clip.hook_text or clip.suggested_title}]
+
+
 def _merge_segments(segments: list[dict], preset: str) -> list[dict]:
     rules = PRESET_WRAP_RULES.get(preset, PRESET_WRAP_RULES[SubtitlePreset.clean.value])
     merged: list[dict] = []
@@ -70,22 +89,7 @@ def _merge_segments(segments: list[dict], preset: str) -> list[dict]:
 
 
 def write_clip_srt(project_id: int, clip: ClipCandidate, transcript: Transcript, base_name: str | None = None) -> tuple[Path, str]:
-    segments = load_transcript_segments(transcript)
-    clip_segments = []
-    for segment in segments:
-        if segment["end"] <= clip.start_time or segment["start"] >= clip.end_time:
-            continue
-        clip_segments.append(
-            {
-                "start": max(segment["start"], clip.start_time) - clip.start_time,
-                "end": min(segment["end"], clip.end_time) - clip.start_time,
-                "text": " ".join(segment["text"].split()),
-            }
-        )
-
-    if not clip_segments:
-        clip_segments = [{"start": 0.0, "end": min(clip.duration, 3.0), "text": clip.hook_text or clip.suggested_title}]
-
+    clip_segments = extract_clip_transcript_segments(clip, transcript)
     merged_segments = _merge_segments(clip_segments, clip.subtitle_preset)
     rules = PRESET_WRAP_RULES.get(clip.subtitle_preset, PRESET_WRAP_RULES[SubtitlePreset.clean.value])
 

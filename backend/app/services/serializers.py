@@ -6,6 +6,7 @@ from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
 from app.models.workflow_job import WorkflowJob
 from app.services.clip_strategy_service import build_clip_strategy
+from app.services.shorts_story_service import build_story_package_from_clip
 from app.services.transcription_service import load_transcript_segments
 from app.utils.paths import public_file_url
 
@@ -68,8 +69,20 @@ def serialize_export(export_record: Export | None) -> dict | None:
 def serialize_clip(clip: ClipCandidate) -> dict:
     latest_export = clip.exports[0] if clip.exports else None
     source_runtime_seconds = None
+    clip_transcript_segments: list[dict] = []
     if getattr(clip, "project", None) and getattr(clip.project, "source_videos", None):
         source_runtime_seconds = clip.project.source_videos[0].duration_seconds
+    if getattr(clip, "project", None) and getattr(clip.project, "transcripts", None):
+        latest_transcript = clip.project.transcripts[0]
+        clip_transcript_segments = [
+            {
+                "start": max(segment["start"], clip.start_time) - clip.start_time,
+                "end": min(segment["end"], clip.end_time) - clip.start_time,
+                "text": " ".join(segment["text"].split()),
+            }
+            for segment in load_transcript_segments(latest_transcript)
+            if segment["end"] > clip.start_time and segment["start"] < clip.end_time
+        ]
     strategy = build_clip_strategy(
         hook_text=clip.hook_text,
         suggested_title=clip.suggested_title,
@@ -79,6 +92,11 @@ def serialize_clip(clip: ClipCandidate) -> dict:
         score=clip.score,
         start_time=clip.start_time,
         end_time=clip.end_time,
+        source_runtime_seconds=source_runtime_seconds,
+    )
+    story_package = build_story_package_from_clip(
+        clip,
+        transcript_segments=[segment for segment in clip_transcript_segments if segment["end"] > segment["start"] and segment["text"]],
         source_runtime_seconds=source_runtime_seconds,
     )
     return {
@@ -104,6 +122,11 @@ def serialize_clip(clip: ClipCandidate) -> dict:
         "selection_signals": strategy.selection_signals,
         "timeline_label": strategy.timeline_label,
         "source_runtime_seconds": strategy.source_runtime_seconds,
+        "story_angle": story_package.story_angle,
+        "analysis_headline": story_package.analysis_headline,
+        "analysis_outline": story_package.analysis_outline,
+        "title_treatment": story_package.title_treatment,
+        "caption_treatment": story_package.caption_treatment,
         "latest_export": serialize_export(latest_export),
     }
 

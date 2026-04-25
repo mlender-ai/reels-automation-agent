@@ -171,7 +171,7 @@ export function CandidateClipsPage() {
               {bestClip ? `가장 강한 후보는 점수 ${formatScore(bestClip.score)} · ${bestClip.recommended_format ?? "기본 포맷"}` : "분석 결과를 불러오는 중"}
             </p>
             <p className="mt-2 text-sm leading-6 text-cyan-50/85">
-              현재 후보들은 조회수 가능성, 초반 훅, 길이 완결감, 격투기/설명형 문맥을 함께 반영해 추천 순으로 정렬되어 있습니다.
+              현재 후보들은 조회수 가능성, 초반 훅, 길이 완결감, 그리고 경기 분석형 해설 포맷까지 함께 반영해 추천 순으로 정렬되어 있습니다.
             </p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">

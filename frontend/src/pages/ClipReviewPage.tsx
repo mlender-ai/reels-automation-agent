@@ -510,6 +510,31 @@ export function ClipReviewPage() {
             </div>
           </div>
 
+          <div className="mt-4 grid gap-4 md:grid-cols-[0.92fr,1.08fr]">
+            <div className="rounded-3xl border border-violet-300/15 bg-violet-300/[0.08] p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-violet-200/75">분석형 숏츠 패키지</p>
+              <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "분석 헤드라인 준비 중"}</p>
+              <p className="mt-2 text-sm leading-6 text-violet-50/85">
+                {clip.story_angle ?? "핵심 장면 분석"} · {clip.title_treatment ?? "상단 타이틀 처리 준비 중"}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-violet-50/80">{clip.caption_treatment ?? "하단 자막 처리 준비 중"}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">추천 해설 자막</p>
+              {(clip.analysis_outline ?? []).length ? (
+                <div className="mt-3 space-y-2">
+                  {(clip.analysis_outline ?? []).map((line, index) => (
+                    <div key={`${index}-${line}`} className="rounded-2xl bg-white/5 px-4 py-3 text-sm leading-6 text-white/90">
+                      {index + 1}. {line}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-slate-300">아직 자동 해설 자막이 준비되지 않았습니다.</p>
+              )}
+            </div>
+          </div>
+
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-300">시작 시간</span>

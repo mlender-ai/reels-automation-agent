@@ -76,6 +76,49 @@ func drawBorder(in rect: NSRect, radius: CGFloat) {
 }
 
 switch style {
+case "micro-title":
+    let chipWidth = min(width - 24, max(280, width * 0.86))
+    let chipHeight = min(height - 10, max(58, height * 0.82))
+    let chipRect = NSRect(x: (width - chipWidth) / 2, y: (height - chipHeight) / 2, width: chipWidth, height: chipHeight)
+    let chip = NSBezierPath(roundedRect: chipRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    color(from: backgroundHex, alpha: max(backgroundAlpha, 0.42)).setFill()
+    chip.fill()
+    drawBorder(in: chipRect.insetBy(dx: 0.5, dy: 0.5), radius: cornerRadius)
+
+    let accentRect = NSRect(x: chipRect.minX + 20, y: chipRect.maxY - 12, width: 64, height: 3)
+    let accent = NSBezierPath(roundedRect: accentRect, xRadius: 1.5, yRadius: 1.5)
+    color(from: accentHex, alpha: 0.96).setFill()
+    accent.fill()
+
+    let eyebrowParagraph = NSMutableParagraphStyle()
+    eyebrowParagraph.alignment = .center
+    eyebrowParagraph.lineBreakMode = .byTruncatingTail
+    if !eyebrow.isEmpty {
+        let eyebrowAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: max(fontSize * 0.38, 12), weight: .semibold),
+            .foregroundColor: color(from: accentHex, alpha: 0.96),
+            .paragraphStyle: eyebrowParagraph,
+        ]
+        let eyebrowRect = NSRect(x: chipRect.minX + 18, y: chipRect.midY + 6, width: chipRect.width - 36, height: 16)
+        (eyebrow as NSString).draw(in: eyebrowRect, withAttributes: eyebrowAttributes)
+    }
+
+    let titleParagraph = NSMutableParagraphStyle()
+    titleParagraph.alignment = .center
+    titleParagraph.lineBreakMode = .byTruncatingTail
+    let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .semibold),
+        .foregroundColor: color(from: foregroundHex, alpha: 1.0),
+        .paragraphStyle: titleParagraph,
+    ]
+    let titleRect = NSRect(
+        x: chipRect.minX + horizontalPadding,
+        y: chipRect.minY + verticalPadding - 6,
+        width: chipRect.width - horizontalPadding * 2,
+        height: chipRect.height - verticalPadding * 2
+    )
+    (text as NSString).draw(in: titleRect, withAttributes: titleAttributes)
+
 case "premium-title":
     let backgroundRect = NSRect(x: 0, y: 0, width: width, height: height)
     let card = NSBezierPath(roundedRect: backgroundRect, xRadius: cornerRadius, yRadius: cornerRadius)
@@ -155,6 +198,46 @@ case "premium-caption":
         height: height - verticalPadding * 2
     )
     (text as NSString).draw(in: captionRect, withAttributes: captionAttributes)
+
+case "kinetic-caption":
+    if !eyebrow.isEmpty {
+        let eyebrowParagraph = NSMutableParagraphStyle()
+        eyebrowParagraph.alignment = .center
+        let eyebrowAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: max(fontSize * 0.34, 14), weight: .semibold),
+            .foregroundColor: color(from: accentHex, alpha: 0.92),
+            .paragraphStyle: eyebrowParagraph,
+        ]
+        let eyebrowRect = NSRect(x: 0, y: height - 34, width: width, height: 18)
+        (eyebrow as NSString).draw(in: eyebrowRect, withAttributes: eyebrowAttributes)
+    }
+
+    let kineticParagraph = NSMutableParagraphStyle()
+    kineticParagraph.alignment = .center
+    kineticParagraph.lineBreakMode = .byWordWrapping
+    kineticParagraph.lineSpacing = 4
+
+    let glowShadow = NSShadow()
+    glowShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.55)
+    glowShadow.shadowBlurRadius = 12
+    glowShadow.shadowOffset = NSSize(width: 0, height: -3)
+
+    let kineticAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .heavy),
+        .foregroundColor: color(from: foregroundHex, alpha: 1.0),
+        .paragraphStyle: kineticParagraph,
+        .shadow: glowShadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.92),
+        .strokeWidth: -4.2,
+    ]
+
+    let kineticRect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding - 4,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2
+    )
+    (text as NSString).draw(in: kineticRect, withAttributes: kineticAttributes)
 
 default:
     let attributes: [NSAttributedString.Key: Any] = [

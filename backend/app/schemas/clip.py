@@ -30,6 +30,11 @@ class ClipCandidateRead(ORMModel):
     selection_signals: list[str]
     timeline_label: str | None = None
     source_runtime_seconds: float | None = None
+    story_angle: str
+    analysis_headline: str
+    analysis_outline: list[str]
+    title_treatment: str
+    caption_treatment: str
     latest_export: ExportRead | None = None
 
 

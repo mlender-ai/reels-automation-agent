@@ -45,6 +45,7 @@ export function ClipCard({ clip, onApprove, onReject, onResetReview, compact = f
         <Link to={`/clips/${clip.id}`} className="block">
           <h3 className="text-lg font-semibold text-white">{clip.suggested_title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-400">{truncate(clip.suggested_description, compact ? 105 : 130)}</p>
+          {clip.analysis_headline ? <p className="mt-3 text-sm font-medium text-cyan-100">{truncate(clip.analysis_headline, compact ? 48 : 62)}</p> : null}
           {clip.selection_reason ? <p className="mt-3 text-sm leading-6 text-cyan-50/90">{truncate(clip.selection_reason, compact ? 85 : 120)}</p> : null}
         </Link>
 
@@ -54,6 +55,9 @@ export function ClipCard({ clip, onApprove, onReject, onResetReview, compact = f
           ) : null}
           {clip.timeline_label ? (
             <span className="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-100">{clip.timeline_label}</span>
+          ) : null}
+          {clip.story_angle ? (
+            <span className="rounded-full bg-violet-300/10 px-3 py-1 text-xs font-medium text-violet-100">{clip.story_angle}</span>
           ) : null}
           {primarySignals.map((signal) => (
             <span key={signal} className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
