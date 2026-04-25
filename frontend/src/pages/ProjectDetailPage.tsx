@@ -208,11 +208,11 @@ export function ProjectDetailPage() {
     previewMode === "export"
       ? resolveMediaUrl(project.latest_export?.thumbnail_url)
       : "";
-  const previewTitle = previewMode === "export" ? "실제 결과물 미리보기" : "원본 영상 미리보기";
+  const previewTitle = previewMode === "export" ? "숏츠 결과물" : "원본 영상";
   const previewDescription =
     previewMode === "export"
-      ? "실제로 생성된 9:16 숏폼 결과물입니다. 제목 오버레이와 캡션이 반영된 최신 export를 바로 확인할 수 있습니다."
-      : "업로드된 원본 소스입니다. 클립 후보, export, publish는 이 파일을 기준으로 진행됩니다.";
+      ? "최신 숏츠 결과물을 9:16 프레임으로 바로 확인할 수 있습니다."
+      : "업로드한 원본입니다. 후보 생성과 내보내기는 이 파일을 기준으로 진행됩니다.";
   const previewAspectClass = previewMode === "export" ? "aspect-[9/16]" : "aspect-video";
   const previewDurationSeconds = project.source_video?.duration_seconds ?? null;
 
@@ -361,31 +361,27 @@ export function ProjectDetailPage() {
                   </div>
                 ) : null}
               </div>
-              <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black/30">
-                <video
-                  controls
-                  poster={previewPoster || undefined}
-                  src={previewUrl}
-                  className={`${previewAspectClass} w-full bg-black ${previewMode === "export" ? "object-cover" : "object-contain"}`}
-                />
+              <div className="mx-auto max-w-[360px]">
+                <div className="overflow-hidden rounded-[32px] border border-white/10 bg-black/30 shadow-panel">
+                  <video
+                    controls
+                    poster={previewPoster || undefined}
+                    src={previewUrl}
+                    className={`${previewAspectClass} w-full bg-black ${previewMode === "export" ? "object-cover" : "object-contain"}`}
+                  />
+                </div>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">{previewMode === "export" ? "결과 길이" : "원본 길이"}</p>
-                  <p className="mt-2 font-semibold text-white">{formatDuration(previewDurationSeconds)}</p>
+                  <p className="text-xs text-slate-500">{previewMode === "export" ? "포맷" : "원본 길이"}</p>
+                  <p className="mt-2 font-semibold text-white">{previewMode === "export" ? "9:16 쇼츠" : formatDuration(previewDurationSeconds)}</p>
                 </div>
                 <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">해상도</p>
+                  <p className="text-xs text-slate-500">{previewMode === "export" ? "오버레이" : "해상도"}</p>
                   <p className="mt-2 font-semibold text-white">
                     {previewMode === "export"
-                      ? "1080 x 1920"
+                      ? "오프닝 훅만 짧게 노출"
                       : `${project.source_video?.width ?? "--"} x ${project.source_video?.height ?? "--"}`}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="text-xs text-slate-500">{previewMode === "export" ? "표시 요소" : "FPS"}</p>
-                  <p className="mt-2 font-semibold text-white">
-                    {previewMode === "export" ? (project.latest_export?.thumbnail_url ? "타이틀 + 캡션" : "세로형 변환") : project.source_video?.fps ?? "--"}
                   </p>
                 </div>
               </div>

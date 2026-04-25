@@ -16,12 +16,6 @@ import { validateClipWindow } from "../lib/clipValidation";
 import { resolveMediaUrl } from "../lib/media";
 import type { ClipCandidate, Project, WorkflowJob } from "../types";
 
-const presets = [
-  { value: "clean", label: "클린", note: "균형 잡힌 크기와 은은한 외곽선으로 안정적인 스타일입니다." },
-  { value: "bold", label: "볼드", note: "대비를 높이고 강조를 강하게 준 스타일입니다." },
-  { value: "creator", label: "크리에이터", note: "숏폼 에너지에 맞춰 더 강한 자막 처리를 적용합니다." },
-];
-
 const ACTIVE_JOB_STATUSES = new Set(["queued", "running"]);
 
 function upsertJob(jobs: WorkflowJob[], job: WorkflowJob) {
@@ -174,9 +168,9 @@ export function ClipReviewPage() {
       setActionNotice({
         tone: "success",
         title: "저장되었습니다",
-        description: "타이밍, 메타데이터, 자막 스타일이 다음 내보내기에 맞춰 반영되었습니다.",
+        description: "타이밍과 메타데이터가 다음 내보내기에 맞춰 반영되었습니다.",
       });
-      pushToast({ tone: "success", title: "클립을 저장했습니다", description: "타이밍, 메타데이터, 자막 프리셋을 업데이트했습니다." });
+      pushToast({ tone: "success", title: "클립을 저장했습니다", description: "타이밍과 메타데이터를 업데이트했습니다." });
     } catch (error) {
       const message = (error as Error).message;
       setActionNotice({ tone: "error", title: "저장에 실패했습니다", description: `${message} 타이밍을 조정한 뒤 다시 시도해 주세요.` });
@@ -370,22 +364,22 @@ export function ClipReviewPage() {
 
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6">
           <h3 className="font-display text-xl font-semibold text-white">빠른 확인</h3>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">시작</p>
-              <p className="mt-2 font-semibold text-white">{form.start_time.toFixed(2)}s</p>
-            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl bg-black/20 p-4">
+                <p className="text-xs text-slate-500">시작</p>
+                <p className="mt-2 font-semibold text-white">{form.start_time.toFixed(2)}s</p>
+              </div>
             <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-xs text-slate-500">종료</p>
               <p className="mt-2 font-semibold text-white">{form.end_time.toFixed(2)}s</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-xs text-slate-500">자막 프리셋</p>
-              <p className="mt-2 font-semibold capitalize text-white">{form.subtitle_preset}</p>
-            </div>
-            <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-xs text-slate-500">최근 내보내기</p>
               <p className="mt-2 font-semibold text-white">{clip.latest_export?.status ?? "없음"}</p>
+            </div>
+            <div className="rounded-2xl bg-black/20 p-4">
+              <p className="text-xs text-slate-500">오프닝 훅</p>
+              <p className="mt-2 font-semibold text-white">{clip.analysis_headline ?? "자동 생성 중"}</p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -510,29 +504,12 @@ export function ClipReviewPage() {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-[0.92fr,1.08fr]">
-            <div className="rounded-3xl border border-violet-300/15 bg-violet-300/[0.08] p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-violet-200/75">분석형 숏츠 패키지</p>
-              <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "분석 헤드라인 준비 중"}</p>
-              <p className="mt-2 text-sm leading-6 text-violet-50/85">
-                {clip.story_angle ?? "핵심 장면 분석"} · {clip.title_treatment ?? "상단 타이틀 처리 준비 중"}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-violet-50/80">{clip.caption_treatment ?? "하단 자막 처리 준비 중"}</p>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">추천 해설 자막</p>
-              {(clip.analysis_outline ?? []).length ? (
-                <div className="mt-3 space-y-2">
-                  {(clip.analysis_outline ?? []).map((line, index) => (
-                    <div key={`${index}-${line}`} className="rounded-2xl bg-white/5 px-4 py-3 text-sm leading-6 text-white/90">
-                      {index + 1}. {line}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-2 text-sm leading-6 text-slate-300">아직 자동 해설 자막이 준비되지 않았습니다.</p>
-              )}
-            </div>
+          <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">이번 버전에서 들어가는 텍스트</p>
+            <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "오프닝 훅 준비 중"}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              상단 훅 한 줄만 약 2초 동안 짧게 노출됩니다. 하단 서브타이틀이나 분석 라벨은 이번 스타일에서 넣지 않습니다.
+            </p>
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
@@ -582,21 +559,6 @@ export function ClipReviewPage() {
                 onChange={(event) => setForm((current) => ({ ...current, suggested_hashtags: event.target.value }))}
                 className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
               />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="mb-2 block text-sm font-medium text-slate-300">자막 프리셋</span>
-              <select
-                value={form.subtitle_preset}
-                onChange={(event) => setForm((current) => ({ ...current, subtitle_preset: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
-              >
-                {presets.map((preset) => (
-                  <option key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-xs text-slate-500">{presets.find((preset) => preset.value === form.subtitle_preset)?.note}</p>
             </label>
           </div>
 

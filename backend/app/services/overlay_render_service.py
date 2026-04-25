@@ -74,51 +74,22 @@ def build_story_overlay_assets(project_id: int, clip_id: int, base_name: str, st
 
     title_card = OverlayCardSpec(
         text=story_package.analysis_headline,
-        width=872,
-        height=124,
-        font_size=40,
-        horizontal_padding=34,
-        vertical_padding=28,
+        width=920,
+        height=170,
+        font_size=76,
+        horizontal_padding=20,
+        vertical_padding=16,
         background_hex="000000",
-        background_alpha=0.78,
+        background_alpha=0.0,
         foreground_hex="FFFFFF",
-        corner_radius=30,
-        style="micro-title",
-        eyebrow=story_package.top_label,
+        corner_radius=0,
+        style="shorts-title",
+        eyebrow="",
         accent_hex="FFFFFF",
     )
     title_path = overlay_dir / f"clip-{clip_id}-story-title.png"
     _render_card(title_path, title_card)
-    rendered_assets.append(RenderedOverlayAsset(path=title_path, x="(W-w)/2", y="72", start=0.0, end=None))
-
-    for index, cue in enumerate(story_package.caption_cues, start=1):
-        font_size = 64 if len(cue.text) <= 14 else 58 if len(cue.text) <= 22 else 52 if len(cue.text) <= 30 else 46
-        caption_card = OverlayCardSpec(
-            text=cue.text,
-            width=980,
-            height=236,
-            font_size=font_size,
-            horizontal_padding=52,
-            vertical_padding=48,
-            background_hex="000000",
-            background_alpha=0.0,
-            foreground_hex="FFFFFF",
-            corner_radius=10,
-            style="kinetic-caption",
-            eyebrow=story_package.story_angle,
-            accent_hex="FFFFFF",
-        )
-        caption_path = overlay_dir / f"clip-{clip_id}-story-caption-{index}.png"
-        _render_card(caption_path, caption_card)
-        rendered_assets.append(
-            RenderedOverlayAsset(
-                path=caption_path,
-                x="(W-w)/2",
-                y="H-h-348",
-                start=cue.start,
-                end=cue.end,
-            )
-        )
+    rendered_assets.append(RenderedOverlayAsset(path=title_path, x="(W-w)/2", y="118", start=0.08, end=1.85))
 
     logger.info("Rendered story overlays. project_id=%s clip_id=%s asset_count=%s", project_id, clip_id, len(rendered_assets))
     return rendered_assets

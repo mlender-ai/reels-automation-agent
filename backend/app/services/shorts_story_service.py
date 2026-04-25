@@ -38,52 +38,52 @@ class ClipStoryPackage:
 
 PROFILE_STYLE_CONFIG = {
     CONTENT_PROFILE_COMBAT_SPORTS: {
-        "title_treatment": "상단 블랙 타이틀 바 + 복싱 해설 헤드라인",
-        "caption_treatment": "하단 대형 자막 + 기술 포인트 3줄",
-        "top_label": "복싱 기술 분석",
+        "title_treatment": "초반 2초 오프닝 훅",
+        "caption_treatment": "미사용",
+        "top_label": "",
         "style_variant": "legend_breakdown",
         "accent_hex": "FFFFFF",
-        "story_angle": "복싱 장면 분석",
+        "story_angle": "오프닝 훅",
     },
     CONTENT_PROFILE_SOCCER: {
-        "title_treatment": "상단 블랙 타이틀 바 + 전술 헤드라인",
-        "caption_treatment": "하단 대형 자막 + 전개 포인트 3줄",
-        "top_label": "전술 장면 분석",
+        "title_treatment": "초반 2초 오프닝 훅",
+        "caption_treatment": "미사용",
+        "top_label": "",
         "style_variant": "tactical_breakdown",
         "accent_hex": "FFFFFF",
-        "story_angle": "경기 흐름 분석",
+        "story_angle": "오프닝 훅",
     },
     CONTENT_PROFILE_RACING: {
-        "title_treatment": "상단 블랙 타이틀 바 + 레이스 헤드라인",
-        "caption_treatment": "하단 대형 자막 + 레이스 포인트 3줄",
-        "top_label": "레이스 장면 분석",
+        "title_treatment": "초반 2초 오프닝 훅",
+        "caption_treatment": "미사용",
+        "top_label": "",
         "style_variant": "race_breakdown",
         "accent_hex": "FFFFFF",
-        "story_angle": "레이스 전략 분석",
+        "story_angle": "오프닝 훅",
     },
     CONTENT_PROFILE_FIGURE_SKATING: {
-        "title_treatment": "상단 블랙 타이틀 바 + 프로그램 헤드라인",
-        "caption_treatment": "하단 대형 자막 + 기술 포인트 3줄",
-        "top_label": "프로그램 분석",
+        "title_treatment": "초반 2초 오프닝 훅",
+        "caption_treatment": "미사용",
+        "top_label": "",
         "style_variant": "program_breakdown",
         "accent_hex": "FFFFFF",
-        "story_angle": "프로그램 디테일 분석",
+        "story_angle": "오프닝 훅",
     },
     CONTENT_PROFILE_BASEBALL: {
-        "title_treatment": "상단 블랙 타이틀 바 + 승부처 헤드라인",
-        "caption_treatment": "하단 대형 자막 + 장면 포인트 3줄",
-        "top_label": "승부처 분석",
+        "title_treatment": "초반 2초 오프닝 훅",
+        "caption_treatment": "미사용",
+        "top_label": "",
         "style_variant": "play_breakdown",
         "accent_hex": "FFFFFF",
-        "story_angle": "결정적 승부 분석",
+        "story_angle": "오프닝 훅",
     },
     CONTENT_PROFILE_GENERAL: {
-        "title_treatment": "상단 블랙 타이틀 바 + 핵심 장면 헤드라인",
-        "caption_treatment": "하단 대형 자막 + 장면 해설 3줄",
-        "top_label": "장면 분석",
+        "title_treatment": "초반 2초 오프닝 훅",
+        "caption_treatment": "미사용",
+        "top_label": "",
         "style_variant": "story_breakdown",
         "accent_hex": "FFFFFF",
-        "story_angle": "핵심 장면 분석",
+        "story_angle": "오프닝 훅",
     },
 }
 
@@ -237,19 +237,19 @@ def _resolve_headline(subject: str | None, profile: str, recommended_format: str
     subject_prefix = f"{resolved_subject} " if resolved_subject else ""
     if profile == CONTENT_PROFILE_COMBAT_SPORTS:
         if "레전드" in text or recommended_format in {FORMAT_LABELS["legend"], FORMAT_LABELS["finish"]}:
-            return f"{subject_prefix}전성기 장면 다시 보는 이유".strip()
+            return f"{subject_prefix}전성기, 이 장면이면 끝".strip()
         if recommended_format in {FORMAT_LABELS["analysis"], FORMAT_LABELS["coach_note"]}:
-            return f"{subject_prefix}움직임이 유독 무서운 이유".strip()
-        return f"{subject_prefix}콤보가 잘 들어가는 이유".strip()
+            return f"{subject_prefix}이 무브가 아직도 무서움".strip()
+        return f"{subject_prefix}콤보 각이 열리는 순간".strip()
     if profile == CONTENT_PROFILE_SOCCER:
-        return f"{subject_prefix}이 장면이 흐름 바꾼 이유".strip()
+        return f"{subject_prefix}흐름 바뀌는 장면".strip()
     if profile == CONTENT_PROFILE_RACING:
-        return f"{subject_prefix}이 랩에서 갈린 이유".strip()
+        return f"{subject_prefix}여기서 승부 갈림".strip()
     if profile == CONTENT_PROFILE_FIGURE_SKATING:
-        return f"{subject_prefix}이 프로그램이 살아나는 포인트".strip()
+        return f"{subject_prefix}프로그램 살아나는 순간".strip()
     if profile == CONTENT_PROFILE_BASEBALL:
-        return f"{subject_prefix}이 승부가 갈린 포인트".strip()
-    return f"{subject_prefix}왜 이 장면만 계속 보게 되는지".strip()
+        return f"{subject_prefix}승부 갈린 한 장면".strip()
+    return f"{subject_prefix}이 장면만 계속 돌려보게 됨".strip()
 
 
 def _build_cue_schedule(duration: float, outline: list[str], transcript_segments: list[dict]) -> list[StoryCue]:
@@ -346,12 +346,15 @@ def build_clip_story_package(
     )
     style_config = PROFILE_STYLE_CONFIG.get(resolved_profile, PROFILE_STYLE_CONFIG[CONTENT_PROFILE_GENERAL])
     subject = _extract_subject(normalized)
-    headline = _resolve_headline(subject, resolved_profile, strategy.recommended_format, normalized)
+    cleaned_title = " ".join((suggested_title or "").split()).strip()
+    blocked_title_terms = ("분석", "브레이크다운", "포인트", "설명", "이유")
+    if 6 <= len(cleaned_title) <= 24 and not any(term in cleaned_title for term in blocked_title_terms):
+        headline = cleaned_title
+    else:
+        headline = _resolve_headline(subject, resolved_profile, strategy.recommended_format, normalized)
     outline = _build_profile_outline(resolved_profile, normalized)
     cues = _build_cue_schedule(duration, outline, transcript_segments or [])
     top_label = style_config["top_label"]
-    if _should_use_subject(subject) and resolved_profile == CONTENT_PROFILE_COMBAT_SPORTS:
-        top_label = f"{subject} 분석"
 
     return ClipStoryPackage(
         story_angle=style_config["story_angle"],

@@ -76,6 +76,33 @@ func drawBorder(in rect: NSRect, radius: CGFloat) {
 }
 
 switch style {
+case "shorts-title":
+    let titleParagraph = NSMutableParagraphStyle()
+    titleParagraph.alignment = .center
+    titleParagraph.lineBreakMode = .byWordWrapping
+    titleParagraph.lineSpacing = -2
+
+    let punchShadow = NSShadow()
+    punchShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.92)
+    punchShadow.shadowBlurRadius = 20
+    punchShadow.shadowOffset = NSSize(width: 0, height: -4)
+
+    let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: titleParagraph,
+        .shadow: punchShadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.96),
+        .strokeWidth: -8.0,
+    ]
+    let titleRect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2
+    )
+    (text as NSString).draw(in: titleRect, withAttributes: titleAttributes)
+
 case "micro-title":
     let chipWidth = min(width - 18, max(320, width * 0.9))
     let chipHeight = min(height - 8, max(74, height * 0.84))
@@ -198,46 +225,6 @@ case "premium-caption":
         height: height - verticalPadding * 2
     )
     (text as NSString).draw(in: captionRect, withAttributes: captionAttributes)
-
-case "kinetic-caption":
-    if !eyebrow.isEmpty {
-        let eyebrowParagraph = NSMutableParagraphStyle()
-        eyebrowParagraph.alignment = .center
-        let eyebrowAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: max(fontSize * 0.26, 16), weight: .semibold),
-            .foregroundColor: NSColor(calibratedWhite: 1.0, alpha: 0.72),
-            .paragraphStyle: eyebrowParagraph,
-        ]
-        let eyebrowRect = NSRect(x: 0, y: height - 44, width: width, height: 20)
-        (eyebrow as NSString).draw(in: eyebrowRect, withAttributes: eyebrowAttributes)
-    }
-
-    let kineticParagraph = NSMutableParagraphStyle()
-    kineticParagraph.alignment = .center
-    kineticParagraph.lineBreakMode = .byWordWrapping
-    kineticParagraph.lineSpacing = 4
-
-    let glowShadow = NSShadow()
-    glowShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.78)
-    glowShadow.shadowBlurRadius = 18
-    glowShadow.shadowOffset = NSSize(width: 0, height: -3)
-
-    let kineticAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: fontSize, weight: .heavy),
-        .foregroundColor: color(from: foregroundHex, alpha: 1.0),
-        .paragraphStyle: kineticParagraph,
-        .shadow: glowShadow,
-        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.92),
-        .strokeWidth: -6.2,
-    ]
-
-    let kineticRect = NSRect(
-        x: horizontalPadding,
-        y: verticalPadding - 8,
-        width: width - horizontalPadding * 2,
-        height: height - verticalPadding * 2
-    )
-    (text as NSString).draw(in: kineticRect, withAttributes: kineticAttributes)
 
 default:
     let attributes: [NSAttributedString.Key: Any] = [
