@@ -3,6 +3,7 @@ import type {
   DashboardSummary,
   ExportRecord,
   Project,
+  ProjectCreativeStrategy,
   PublishJob,
   PublishQueueResponse,
   SystemStatus,
@@ -21,6 +22,7 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   getProject: (projectId: number) => request<Project>(`/projects/${projectId}`),
+  getProjectCreativeStrategy: (projectId: number) => request<ProjectCreativeStrategy>(`/projects/${projectId}/creative-strategy`),
   listProjectJobs: (projectId: number) => request<WorkflowJob[]>(`/projects/${projectId}/jobs`),
   uploadProjectVideo: (projectId: number, file: File) => {
     const formData = new FormData();

@@ -309,13 +309,22 @@ export function ProjectDetailPage() {
                   : "클립 후보 생성"}
             </button>
             {hasClips ? (
-              <Link
-                to={`/projects/${project.id}/clips`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-              >
-                <Sparkles className="h-4 w-4" />
-                후보 보기
-              </Link>
+              <>
+                <Link
+                  to={`/projects/${project.id}/clips`}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  후보 보기
+                </Link>
+                <Link
+                  to={`/projects/${project.id}/clips#formats`}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/15"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  포맷/스크립트 전략 보기
+                </Link>
+              </>
             ) : (
               <button
                 type="button"

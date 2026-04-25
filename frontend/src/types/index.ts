@@ -117,6 +117,43 @@ export type Project = {
   next_action?: string;
 };
 
+export type ShortformFormatVariant = {
+  id: string;
+  label: string;
+  summary: string;
+  visual_direction: string;
+  edit_rhythm: string;
+  sample_title: string;
+  sample_caption: string;
+  search_prompt: string;
+  source_clip_id: number;
+  source_clip_range: string;
+  confidence_label: string;
+};
+
+export type ShortformScriptIdea = {
+  id: string;
+  label: string;
+  format_label: string;
+  title: string;
+  hook: string;
+  opening_line: string;
+  beat_plan: string[];
+  closing_line: string;
+  cta: string;
+  hashtags: string;
+  why_it_can_work: string;
+  source_clip_id: number;
+  source_clip_range: string;
+};
+
+export type ProjectCreativeStrategy = {
+  project_id: number;
+  strategy_focus: string;
+  format_variants: ShortformFormatVariant[];
+  script_ideas: ShortformScriptIdea[];
+};
+
 export type PublishJob = {
   id: number;
   clip_candidate_id: number;

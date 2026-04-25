@@ -6,15 +6,18 @@ import { ClipCard } from "../components/ClipCard";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
+import { FormatVariantCard } from "../components/FormatVariantCard";
 import { LoadingState } from "../components/LoadingState";
+import { ScriptIdeaCard } from "../components/ScriptIdeaCard";
 import { useToast } from "../hooks/useToast";
-import type { ClipCandidate, Project } from "../types";
+import type { ClipCandidate, Project, ProjectCreativeStrategy } from "../types";
 import { formatDuration, formatScore } from "../lib/formatters";
 
 export function CandidateClipsPage() {
   const { projectId } = useParams();
   const [project, setProject] = useState<Project | null>(null);
   const [clips, setClips] = useState<ClipCandidate[]>([]);
+  const [creativeStrategy, setCreativeStrategy] = useState<ProjectCreativeStrategy | null>(null);
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [busyClipId, setBusyClipId] = useState<number | null>(null);
@@ -27,9 +30,14 @@ export function CandidateClipsPage() {
     try {
       setLoading(true);
       setPageError("");
-      const [projectResponse, clipsResponse] = await Promise.all([api.getProject(Number(projectId)), api.listProjectClips(Number(projectId))]);
+      const [projectResponse, clipsResponse, strategyResponse] = await Promise.all([
+        api.getProject(Number(projectId)),
+        api.listProjectClips(Number(projectId)),
+        api.getProjectCreativeStrategy(Number(projectId)),
+      ]);
       setProject(projectResponse);
       setClips(clipsResponse);
+      setCreativeStrategy(strategyResponse);
     } catch (error) {
       const message = (error as Error).message;
       setPageError(message);
@@ -200,6 +208,27 @@ export function CandidateClipsPage() {
         </section>
       ) : null}
 
+      {creativeStrategy && clips.length ? (
+        <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 shadow-panel">
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">전략 포커스</p>
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
+            <div className="rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.08] p-5">
+              <p className="text-sm leading-7 text-cyan-50/90">{creativeStrategy.strategy_focus}</p>
+            </div>
+            <div className="rounded-3xl border border-white/8 bg-black/20 p-5">
+              <p className="text-sm leading-7 text-slate-200">
+                이 프로젝트는 한 후보만 바로 내보내는 흐름보다, 같은 원본으로 <span className="font-semibold text-white">빅 헤드라인형</span>,{" "}
+                <span className="font-semibold text-white">반응 밈형</span>, <span className="font-semibold text-white">카운트다운형</span>처럼 여러 숏폼
+                형태를 같이 비교하는 편이 더 좋습니다.
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-400">
+                아래 카드에서 포맷과 스크립트를 먼저 고르고, 마음에 드는 후보로 들어가 제목/설명/자막을 바로 수정하면 됩니다.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {actionNotice ? (
         <section
           className={`rounded-3xl border px-5 py-4 text-sm ${
@@ -228,6 +257,38 @@ export function CandidateClipsPage() {
             >
               프로젝트 상세로 이동
             </Link>
+          </div>
+        </section>
+      ) : null}
+
+      {creativeStrategy?.format_variants.length ? (
+        <section className="space-y-4" id="formats">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">숏폼 형태 제안</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">같은 원본으로 이렇게 나눠볼 수 있습니다</h3>
+            </div>
+          </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            {creativeStrategy.format_variants.map((variant) => (
+              <FormatVariantCard key={`${variant.id}-${variant.source_clip_id}`} variant={variant} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {creativeStrategy?.script_ideas.length ? (
+        <section className="space-y-4" id="scripts">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">스크립트 아이디어</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">제목만 바꾸는 게 아니라 말할 흐름까지 같이 잡습니다</h3>
+            </div>
+          </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            {creativeStrategy.script_ideas.map((idea) => (
+              <ScriptIdeaCard key={idea.id} idea={idea} />
+            ))}
           </div>
         </section>
       ) : null}

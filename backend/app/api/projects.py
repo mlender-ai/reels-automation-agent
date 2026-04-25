@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.constants import WorkflowJobType
 from app.db.session import get_db
 from app.schemas.clip import ClipCandidateRead
+from app.schemas.creative_strategy import ProjectCreativeStrategyRead
 from app.schemas.project import ProjectCreate, ProjectDetail, ProjectRead, SourceVideoRead
 from app.schemas.transcript import TranscriptRead
 from app.schemas.workflow_job import WorkflowJobRead
 from app.services.clip_scoring_service import generate_clip_candidates
+from app.services.creative_strategy_service import build_project_creative_strategy, serialize_project_creative_strategy
 from app.services.project_service import (
     create_project,
     get_project_or_404,
@@ -138,6 +140,14 @@ def list_clips_endpoint(project_id: int, db: Session = Depends(get_db)) -> list[
     get_project_or_404(db, project_id)
     clips = list_project_clips(db, project_id)
     return [serialize_clip(clip) for clip in clips]
+
+
+@router.get("/{project_id}/creative-strategy", response_model=ProjectCreativeStrategyRead)
+def get_project_creative_strategy_endpoint(project_id: int, db: Session = Depends(get_db)) -> dict:
+    project = get_project_or_404(db, project_id)
+    clips = list_project_clips(db, project_id)
+    strategy = build_project_creative_strategy(project, clips)
+    return serialize_project_creative_strategy(strategy)
 
 
 @router.get("/{project_id}/jobs", response_model=list[WorkflowJobRead])
