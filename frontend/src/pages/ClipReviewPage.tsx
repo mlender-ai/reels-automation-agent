@@ -30,6 +30,7 @@ export function ClipReviewPage() {
   const { pushToast } = useToast();
   const [clip, setClip] = useState<ClipCandidate | null>(null);
   const [project, setProject] = useState<Project | null>(null);
+  const [relatedClips, setRelatedClips] = useState<ClipCandidate[]>([]);
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,13 +88,20 @@ export function ClipReviewPage() {
       if (!options.silent) setLoading(true);
       setPageError("");
       const clipResponse = await api.getClip(Number(clipId));
-      const [projectResponse, jobsResponse] = await Promise.all([
+      const [projectResponse, jobsResponse, relatedClipsResponse] = await Promise.all([
         api.getProject(clipResponse.project_id),
         api.listClipJobs(Number(clipId)),
+        api.listProjectClips(clipResponse.project_id),
       ]);
       setClip(clipResponse);
       setProject(projectResponse);
       setJobs(jobsResponse);
+      setRelatedClips(
+        relatedClipsResponse
+          .filter((candidate) => candidate.id !== clipResponse.id)
+          .sort((left, right) => right.score - left.score)
+          .slice(0, 5),
+      );
       setForm({
         start_time: clipResponse.start_time,
         end_time: clipResponse.end_time,
@@ -399,8 +407,8 @@ export function ClipReviewPage() {
             <div className="grid content-start gap-3">
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">이번 버전</p>
-                <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "오프닝 훅 준비 중"}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-400">상단 훅 한 줄만 짧게 노출됩니다. 보조 배너와 서브타이틀은 넣지 않습니다.</p>
+                <p className="mt-2 text-lg font-semibold text-white">{clip.analysis_headline ?? "고정 타이틀 준비 중"}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-400">상단 타이틀은 고정되고, 하단 자막은 실제 transcript 기준으로 순서대로 노출됩니다.</p>
               </div>
               <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm">
                 <div>
@@ -652,6 +660,48 @@ export function ClipReviewPage() {
           </div>
         </aside>
       </div>
+
+      {relatedClips.length ? (
+        <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4 lg:p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">후보군 비교</p>
+              <h4 className="mt-2 font-display text-xl font-semibold text-white">같은 프로젝트의 다른 후보</h4>
+              <p className="mt-2 text-sm leading-6 text-slate-400">지금 보고 있는 클립 말고도, 점수 높은 후보를 바로 비교해보세요.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/projects/${project.id}/clips`)}
+              className="rounded-2xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/5"
+            >
+              전체 후보 보기
+            </button>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-5">
+            {relatedClips.map((candidate) => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => navigate(`/clips/${candidate.id}`)}
+                className="rounded-3xl border border-white/10 bg-black/20 p-4 text-left transition hover:border-cyan-300/30 hover:bg-white/[0.05]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white">{formatDuration(candidate.duration)}</span>
+                  <span className="rounded-full bg-cyan-300/12 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">{candidate.score.toFixed(1)}</span>
+                </div>
+                <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-white">{candidate.suggested_title}</p>
+                <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-400">{candidate.analysis_headline ?? candidate.hook_text}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {candidate.recommended_format ? (
+                    <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-slate-200">{candidate.recommended_format}</span>
+                  ) : null}
+                  <StatusBadge status={candidate.status} />
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {relevantJobs.length ? (
         <details className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4">

@@ -9,9 +9,9 @@ from app.utils.paths import project_exports_dir, to_relative_data_path
 
 
 PRESET_WRAP_RULES = {
-    SubtitlePreset.clean.value: {"line_length": 28, "max_chars": 54},
-    SubtitlePreset.bold.value: {"line_length": 22, "max_chars": 44},
-    SubtitlePreset.creator.value: {"line_length": 24, "max_chars": 48},
+    SubtitlePreset.clean.value: {"line_length": 18, "max_chars": 34},
+    SubtitlePreset.bold.value: {"line_length": 16, "max_chars": 30},
+    SubtitlePreset.creator.value: {"line_length": 17, "max_chars": 32},
 }
 
 
@@ -113,3 +113,21 @@ def write_clip_srt(project_id: int, clip: ClipCandidate, transcript: Transcript,
         )
     srt_path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
     return srt_path, to_relative_data_path(srt_path)
+
+
+def build_subtitle_overlay_cues(clip: ClipCandidate, transcript: Transcript) -> list[dict]:
+    clip_segments = extract_clip_transcript_segments(clip, transcript)
+    merged_segments = _merge_segments(clip_segments, clip.subtitle_preset)
+    rules = PRESET_WRAP_RULES.get(clip.subtitle_preset, PRESET_WRAP_RULES[SubtitlePreset.clean.value])
+
+    cues: list[dict] = []
+    previous_end = 0.0
+    for segment in merged_segments:
+        wrapped_text = _wrap_text(segment["text"], max_line_length=rules["line_length"])
+        if not wrapped_text:
+            continue
+        start_time = max(segment["start"], previous_end + 0.06)
+        end_time = max(segment["end"], start_time + 0.9)
+        cues.append({"start": round(start_time, 2), "end": round(end_time, 2), "text": wrapped_text})
+        previous_end = end_time
+    return cues

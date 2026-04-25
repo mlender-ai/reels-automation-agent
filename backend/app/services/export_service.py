@@ -13,7 +13,7 @@ from app.models.transcript import Transcript
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.overlay_render_service import build_story_overlay_assets
 from app.services.shorts_story_service import build_story_package_from_clip
-from app.services.subtitle_service import build_subtitle_style, extract_clip_transcript_segments, write_clip_srt
+from app.services.subtitle_service import build_subtitle_style, build_subtitle_overlay_cues, extract_clip_transcript_segments, write_clip_srt
 from app.services.validation_service import validate_clip_metadata, validate_clip_window, validate_generated_subtitle_file
 from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
 
@@ -73,13 +73,20 @@ def export_clip(
         subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
         validate_generated_subtitle_file(subtitle_file)
         overlay_assets = []
+        clip_transcript_segments = extract_clip_transcript_segments(clip, transcript)
         try:
             story_package = build_story_package_from_clip(
                 clip,
-                transcript_segments=extract_clip_transcript_segments(clip, transcript),
+                transcript_segments=clip_transcript_segments,
                 source_runtime_seconds=source_duration_seconds,
             )
-            overlay_assets = build_story_overlay_assets(project.id, clip.id, base_name, story_package)
+            overlay_assets = build_story_overlay_assets(
+                project.id,
+                clip.id,
+                base_name,
+                story_package,
+                subtitle_cues=build_subtitle_overlay_cues(clip, transcript),
+            )
         except Exception as exc:  # pragma: no cover - best effort styling fallback
             logger.warning("Story overlay generation skipped. project_id=%s clip_id=%s detail=%s", project.id, clip.id, exc)
         export_vertical_clip(

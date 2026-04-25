@@ -107,7 +107,7 @@ FILLER_PREFIXES = {
 
 
 SUBTITLE_STYLE_MAP = {
-    SubtitlePreset.clean.value: "FontSize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H78000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=112",
-    SubtitlePreset.bold.value: "FontSize=19,Bold=1,PrimaryColour=&H0000FFFF,OutlineColour=&H96000000,BorderStyle=1,Outline=3,Shadow=0,Alignment=2,MarginV=126",
-    SubtitlePreset.creator.value: "FontSize=18,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H46000000,BackColour=&H46000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=148",
+    SubtitlePreset.clean.value: "FontSize=20,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H96000000,BorderStyle=1,Outline=3,Shadow=0,Alignment=2,MarginV=118",
+    SubtitlePreset.bold.value: "FontSize=22,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&HAA000000,BorderStyle=1,Outline=4,Shadow=0,Alignment=2,MarginV=122",
+    SubtitlePreset.creator.value: "FontSize=21,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&HAA000000,BackColour=&H5A000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=136",
 }

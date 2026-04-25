@@ -76,6 +76,69 @@ func drawBorder(in rect: NSRect, radius: CGFloat) {
 }
 
 switch style {
+case "shorts-fixed-title":
+    let chipRect = NSRect(x: 0, y: 0, width: width, height: height)
+    let chip = NSBezierPath(roundedRect: chipRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    color(from: backgroundHex, alpha: backgroundAlpha).setFill()
+    chip.fill()
+    drawBorder(in: chipRect.insetBy(dx: 0.5, dy: 0.5), radius: cornerRadius)
+
+    let titleParagraph = NSMutableParagraphStyle()
+    titleParagraph.alignment = .center
+    titleParagraph.lineBreakMode = .byWordWrapping
+    titleParagraph.lineSpacing = -1
+
+    let punchShadow = NSShadow()
+    punchShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.88)
+    punchShadow.shadowBlurRadius = 18
+    punchShadow.shadowOffset = NSSize(width: 0, height: -3)
+
+    let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: titleParagraph,
+        .shadow: punchShadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.9),
+        .strokeWidth: -5.0,
+    ]
+    let titleRect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2
+    )
+    (text as NSString).draw(in: titleRect, withAttributes: titleAttributes)
+
+case "shorts-subtitle":
+    let cardRect = NSRect(x: 0, y: 0, width: width, height: height)
+    let card = NSBezierPath(roundedRect: cardRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    color(from: backgroundHex, alpha: backgroundAlpha).setFill()
+    card.fill()
+
+    let captionParagraph = NSMutableParagraphStyle()
+    captionParagraph.alignment = .center
+    captionParagraph.lineBreakMode = .byWordWrapping
+    captionParagraph.lineSpacing = 2
+
+    let captionShadow = NSShadow()
+    captionShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.75)
+    captionShadow.shadowBlurRadius = 10
+    captionShadow.shadowOffset = NSSize(width: 0, height: -2)
+
+    let captionAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .bold),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: captionParagraph,
+        .shadow: captionShadow,
+    ]
+    let captionRect = NSRect(
+        x: horizontalPadding,
+        y: verticalPadding,
+        width: width - horizontalPadding * 2,
+        height: height - verticalPadding * 2
+    )
+    (text as NSString).draw(in: captionRect, withAttributes: captionAttributes)
+
 case "shorts-title":
     let titleParagraph = NSMutableParagraphStyle()
     titleParagraph.alignment = .center
