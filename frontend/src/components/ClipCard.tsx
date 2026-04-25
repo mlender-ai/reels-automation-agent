@@ -1,4 +1,4 @@
-import { Check, PencilLine, X } from "lucide-react";
+import { Check, PencilLine, RotateCcw, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { ClipCandidate } from "../types";
@@ -9,10 +9,11 @@ type ClipCardProps = {
   clip: ClipCandidate;
   onApprove?: (clipId: number) => void;
   onReject?: (clipId: number) => void;
+  onResetReview?: (clipId: number) => void;
   compact?: boolean;
 };
 
-export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCardProps) {
+export function ClipCard({ clip, onApprove, onReject, onResetReview, compact = false }: ClipCardProps) {
   const primarySignals = (clip.selection_signals ?? []).slice(0, 2);
   return (
     <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] shadow-panel">
@@ -95,10 +96,20 @@ export function ClipCard({ clip, onApprove, onReject, compact = false }: ClipCar
             <button
               type="button"
               onClick={() => onReject(clip.id)}
-            className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
-          >
-            <X className="h-4 w-4" />
+              className="inline-flex items-center gap-2 rounded-2xl bg-rose-400/15 px-4 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-400/20"
+            >
+              <X className="h-4 w-4" />
               반려
+            </button>
+          ) : null}
+          {onResetReview && clip.status !== "pending" ? (
+            <button
+              type="button"
+              onClick={() => onResetReview(clip.id)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/5"
+            >
+              <RotateCcw className="h-4 w-4" />
+              되돌리기
             </button>
           ) : null}
         </div>

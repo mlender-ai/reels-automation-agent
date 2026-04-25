@@ -1,4 +1,4 @@
-import { Check, Clock3, Download, ExternalLink, Save, Send, SkipBack, SkipForward, X } from "lucide-react";
+import { Check, Clock3, Download, ExternalLink, RotateCcw, Save, Send, SkipBack, SkipForward, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -40,7 +40,7 @@ export function ClipReviewPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
-  const [statusSubmitting, setStatusSubmitting] = useState<"approve" | "reject" | null>(null);
+  const [statusSubmitting, setStatusSubmitting] = useState<"approve" | "reject" | "reset" | null>(null);
   const [pageError, setPageError] = useState("");
   const [actionNotice, setActionNotice] = useState<{ tone: "error" | "info" | "success"; title: string; description: string } | null>(
     null,
@@ -207,7 +207,7 @@ export function ClipReviewPage() {
   async function handleReject() {
     if (!clip) return;
     try {
-      setStatusSubmitting("reject");
+      setStatusSubmitting("reset");
       setActionNotice(null);
       const updated = await api.rejectClip(clip.id);
       setClip(updated);
@@ -218,6 +218,28 @@ export function ClipReviewPage() {
       const message = (error as Error).message;
       setActionNotice({ tone: "error", title: "반려에 실패했습니다", description: `${message} 여전히 준비 큐에서 제외하려면 다시 시도해 주세요.` });
       pushToast({ tone: "error", title: "반려에 실패했습니다", description: message });
+    } finally {
+      setStatusSubmitting(null);
+    }
+  }
+
+  async function handleResetReview() {
+    if (!clip) return;
+    try {
+      setStatusSubmitting("reject");
+      setActionNotice(null);
+      const updated = await api.resetClipReview(clip.id);
+      setClip(updated);
+      setActionNotice({
+        tone: "info",
+        title: "검토 상태를 되돌렸습니다",
+        description: "이제 다시 pending 상태에서 수정하거나 승인 여부를 재검토할 수 있습니다.",
+      });
+      pushToast({ tone: "info", title: "검토 상태를 되돌렸습니다", description: "이 클립은 다시 검토 대기 상태가 되었습니다." });
+    } catch (error) {
+      const message = (error as Error).message;
+      setActionNotice({ tone: "error", title: "되돌리기에 실패했습니다", description: `${message} 이미 내보낸 결과물이 있으면 새 버전을 다시 만들어야 합니다.` });
+      pushToast({ tone: "error", title: "되돌리기에 실패했습니다", description: message });
     } finally {
       setStatusSubmitting(null);
     }
@@ -608,6 +630,15 @@ export function ClipReviewPage() {
             >
               <X className="h-4 w-4" />
               반려
+            </button>
+            <button
+              type="button"
+              onClick={handleResetReview}
+              disabled={saving || statusSubmitting !== null || clip.status === "pending" || Boolean(activeExportJob)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              검토 상태 되돌리기
             </button>
             <button
               type="button"

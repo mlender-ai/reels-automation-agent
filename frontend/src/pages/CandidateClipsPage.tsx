@@ -87,6 +87,27 @@ export function CandidateClipsPage() {
     }
   }
 
+  async function handleResetReview(clipId: number) {
+    try {
+      setBusyClipId(clipId);
+      setActionNotice(null);
+      const updated = await api.resetClipReview(clipId);
+      setClips((current) => current.map((clip) => (clip.id === clipId ? updated : clip)));
+      setActionNotice({
+        tone: "info",
+        title: "검토 상태를 되돌렸습니다",
+        description: "이 후보를 다시 pending 상태로 돌려서 재검토하거나 수정 흐름으로 이어갈 수 있습니다.",
+      });
+      pushToast({ tone: "info", title: "검토 상태를 되돌렸습니다", description: "이 후보는 다시 검토 대기 상태가 되었습니다." });
+    } catch (error) {
+      const message = (error as Error).message;
+      setActionNotice({ tone: "error", title: "되돌리기에 실패했습니다", description: `${message} 내보낸 클립은 새 버전으로 다시 내보내야 합니다.` });
+      pushToast({ tone: "error", title: "되돌리기에 실패했습니다", description: message });
+    } finally {
+      setBusyClipId(null);
+    }
+  }
+
   if (loading) return <LoadingState label="클립 후보를 불러오는 중..." />;
   if (!project) {
     if (pageError) {
@@ -219,6 +240,7 @@ export function CandidateClipsPage() {
               clip={clip}
               onApprove={busyClipId ? undefined : handleApprove}
               onReject={busyClipId ? undefined : (clipId) => setRejectingId(clipId)}
+              onResetReview={busyClipId ? undefined : handleResetReview}
             />
           ))}
         </section>

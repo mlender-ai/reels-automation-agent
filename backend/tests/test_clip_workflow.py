@@ -30,6 +30,18 @@ class ClipWorkflowTests(unittest.TestCase):
         self.assertEqual(context.exception.status_code, 409)
         self.assertIn("cannot be rejected", str(context.exception.detail))
 
+    def test_reset_review_moves_clip_back_to_pending(self) -> None:
+        clip = SimpleNamespace(status=ClipStatus.approved.value)
+        updated = transition_clip_status(clip, ClipStatus.pending)
+        self.assertEqual(updated.status, ClipStatus.pending.value)
+
+    def test_reset_review_blocks_exported_clip(self) -> None:
+        clip = SimpleNamespace(status=ClipStatus.exported.value)
+        with self.assertRaises(HTTPException) as context:
+            transition_clip_status(clip, ClipStatus.pending)
+        self.assertEqual(context.exception.status_code, 409)
+        self.assertIn("cannot be reset", str(context.exception.detail))
+
 
 class PublishValidationTests(unittest.TestCase):
     def make_clip(self, *, status: str, export_status: str, publish_jobs: list | None = None, output_path: str = "projects/demo/exports/file.mp4"):

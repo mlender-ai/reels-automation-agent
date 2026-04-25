@@ -13,7 +13,9 @@ if str(BACKEND_DIR) not in sys.path:
 from app.services.validation_service import (  # noqa: E402
     MAX_CLIP_DURATION_SECONDS,
     MIN_CLIP_DURATION_SECONDS,
+    validate_clip_metadata,
     validate_clip_window,
+    validate_generated_subtitle_file,
     validate_video_upload,
 )
 
@@ -69,3 +71,16 @@ class ClipValidationTests(unittest.TestCase):
             validate_clip_window(10.0, 42.5, max_source_duration=40.0)
         self.assertEqual(context.exception.status_code, 422)
         self.assertIn("source video duration", str(context.exception.detail))
+
+    def test_rejects_missing_clip_metadata_before_approval(self) -> None:
+        with self.assertRaises(HTTPException) as context:
+            validate_clip_metadata("짧음", "너무 짧음", "shorts", "clean")
+        self.assertEqual(context.exception.status_code, 422)
+        self.assertIn("title", str(context.exception.detail).lower())
+
+    def test_rejects_missing_generated_subtitle_file(self) -> None:
+        missing_path = Path(__file__).resolve().parent / "missing-subtitle.srt"
+        with self.assertRaises(HTTPException) as context:
+            validate_generated_subtitle_file(missing_path)
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Subtitle file", str(context.exception.detail))

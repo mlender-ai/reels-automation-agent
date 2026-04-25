@@ -7,6 +7,16 @@ from app.models.clip_candidate import ClipCandidate
 def transition_clip_status(clip: ClipCandidate, target_status: ClipStatus) -> ClipCandidate:
     current_status = clip.status
 
+    if target_status == ClipStatus.pending:
+        if current_status == ClipStatus.exported.value:
+            raise HTTPException(
+                status_code=409,
+                detail="Exported clips cannot be reset to pending directly. Edit the clip and create a new export if the content needs changes.",
+            )
+        if current_status in {ClipStatus.pending.value, ClipStatus.approved.value, ClipStatus.rejected.value}:
+            clip.status = ClipStatus.pending.value
+            return clip
+
     if target_status == ClipStatus.approved:
         if current_status == ClipStatus.exported.value:
             return clip

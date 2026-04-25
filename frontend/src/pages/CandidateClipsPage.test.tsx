@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +14,7 @@ vi.mock("../api", () => ({
     listProjectClips: vi.fn(),
     approveClip: vi.fn(),
     rejectClip: vi.fn(),
+    resetClipReview: vi.fn(),
   },
 }));
 
@@ -72,6 +74,7 @@ describe("CandidateClipsPage", () => {
     vi.mocked(api.listProjectClips).mockReset();
     vi.mocked(api.approveClip).mockReset();
     vi.mocked(api.rejectClip).mockReset();
+    vi.mocked(api.resetClipReview).mockReset();
   });
 
   it("모든 후보가 반려 상태이면 재생성 안내를 보여준다", async () => {
@@ -83,5 +86,21 @@ describe("CandidateClipsPage", () => {
     expect(await screen.findByText("Rejected only project")).toBeInTheDocument();
     expect(screen.getByText("검토 가능한 후보가 현재 없습니다")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "프로젝트 상세로 이동" })).toHaveAttribute("href", "/projects/4");
+  });
+
+  it("반려된 후보는 검토 상태를 되돌릴 수 있다", async () => {
+    const user = userEvent.setup();
+    const revertedClip = { ...makeRejectedClip(1), status: "pending" };
+    vi.mocked(api.getProject).mockResolvedValue(makeProject());
+    vi.mocked(api.listProjectClips).mockResolvedValue([makeRejectedClip(1)]);
+    vi.mocked(api.resetClipReview).mockResolvedValue(revertedClip);
+
+    renderPage();
+
+    expect(await screen.findByText("Rejected only project")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "되돌리기" }));
+
+    expect(api.resetClipReview).toHaveBeenCalledWith(1);
+    expect((await screen.findAllByText("검토 상태를 되돌렸습니다")).length).toBeGreaterThan(0);
   });
 });

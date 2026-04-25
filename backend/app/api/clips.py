@@ -17,7 +17,7 @@ from app.services.export_service import export_clip
 from app.services.project_service import get_project_or_404, latest_source_video, latest_transcript
 from app.services.publish_service import create_publish_job
 from app.services.serializers import serialize_clip, serialize_export, serialize_publish_job, serialize_workflow_job
-from app.services.validation_service import validate_clip_window
+from app.services.validation_service import validate_clip_metadata, validate_clip_window
 from app.services.workflow_job_service import create_workflow_job, list_clip_jobs
 from app.workers.workflow_worker import run_export_job, run_publish_job
 from app.workers.publish_worker import simulate_publish_job
@@ -89,6 +89,7 @@ def update_clip_endpoint(clip_id: int, payload: ClipCandidateUpdate, db: Session
 @router.post("/clips/{clip_id}/approve", response_model=ClipCandidateRead)
 def approve_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
     clip = get_clip_or_404(db, clip_id)
+    validate_clip_metadata(clip.suggested_title, clip.suggested_description, clip.suggested_hashtags, clip.subtitle_preset)
     transition_clip_status(clip, ClipStatus.approved)
     db.add(clip)
     db.commit()
@@ -99,6 +100,15 @@ def approve_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
 def reject_clip_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
     clip = get_clip_or_404(db, clip_id)
     transition_clip_status(clip, ClipStatus.rejected)
+    db.add(clip)
+    db.commit()
+    return serialize_clip(get_clip_or_404(db, clip_id))
+
+
+@router.post("/clips/{clip_id}/reset-review", response_model=ClipCandidateRead)
+def reset_clip_review_endpoint(clip_id: int, db: Session = Depends(get_db)) -> dict:
+    clip = get_clip_or_404(db, clip_id)
+    transition_clip_status(clip, ClipStatus.pending)
     db.add(clip)
     db.commit()
     return serialize_clip(get_clip_or_404(db, clip_id))

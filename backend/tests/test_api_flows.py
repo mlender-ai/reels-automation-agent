@@ -227,6 +227,33 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("approved", response.json()["detail"])
 
+    def test_approve_rejects_missing_metadata(self) -> None:
+        _project, clips = self._prepare_project_with_generated_clips()
+        clip_id = clips[0]["id"]
+        patch_response = self.client.patch(
+            f"/clips/{clip_id}",
+            json={
+                "suggested_title": "짧음",
+                "suggested_description": "짧음",
+                "suggested_hashtags": "shorts",
+            },
+        )
+        self.assertEqual(patch_response.status_code, 200, patch_response.text)
+
+        response = self.client.post(f"/clips/{clip_id}/approve")
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("title", response.json()["detail"].lower())
+
+    def test_reset_review_endpoint_returns_clip_to_pending(self) -> None:
+        _project, clips = self._prepare_project_with_generated_clips()
+        clip_id = clips[0]["id"]
+        approve_response = self.client.post(f"/clips/{clip_id}/approve")
+        self.assertEqual(approve_response.status_code, 200, approve_response.text)
+
+        reset_response = self.client.post(f"/clips/{clip_id}/reset-review")
+        self.assertEqual(reset_response.status_code, 200, reset_response.text)
+        self.assertEqual(reset_response.json()["status"], ClipStatus.pending.value)
+
     def test_queue_publish_requires_completed_export(self) -> None:
         _project, clips = self._prepare_project_with_generated_clips()
         approve_response = self.client.post(f"/clips/{clips[0]['id']}/approve")

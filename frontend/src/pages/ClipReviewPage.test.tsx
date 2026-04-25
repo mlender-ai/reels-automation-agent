@@ -28,6 +28,7 @@ vi.mock("../api", () => ({
     updateClip: vi.fn(),
     approveClip: vi.fn(),
     rejectClip: vi.fn(),
+    resetClipReview: vi.fn(),
   },
 }));
 
@@ -69,6 +70,13 @@ function makeClip(overrides: Partial<ClipCandidate> = {}): ClipCandidate {
     end_time: 28,
     duration: 20,
     score: 82,
+    content_profile: "general",
+    content_profile_label: "일반",
+    recommended_format: "분석형",
+    virality_label: "우선 검토",
+    selection_reason: "테스트용 후보",
+    selection_signals: ["테스트 신호"],
+    timeline_label: "초반",
     hook_text: "Three mistakes kill retention in the first minute.",
     suggested_title: "Three retention mistakes",
     suggested_description: "A concise explanation of what hurts short-form retention.",
@@ -125,6 +133,7 @@ describe("ClipReviewPage", () => {
     vi.mocked(api.updateClip).mockReset();
     vi.mocked(api.approveClip).mockReset();
     vi.mocked(api.rejectClip).mockReset();
+    vi.mocked(api.resetClipReview).mockReset();
   });
 
   it("내보내기 작업을 시작하면 인라인 대기열 안내를 보여준다", async () => {
@@ -192,5 +201,23 @@ describe("ClipReviewPage", () => {
       expect(api.startClipPublishJob).toHaveBeenCalledWith(11, "youtube");
     });
     expect((await screen.findAllByText("게시 큐에 등록했습니다")).length).toBeGreaterThan(0);
+  });
+
+  it("승인된 클립은 검토 상태를 pending으로 되돌릴 수 있다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getClip).mockResolvedValue(makeClip());
+    vi.mocked(api.getProject).mockResolvedValue(makeProject());
+    vi.mocked(api.listClipJobs).mockResolvedValue([]);
+    vi.mocked(api.resetClipReview).mockResolvedValue(makeClip({ status: "pending" }));
+
+    renderClipReview();
+
+    expect(await screen.findByText("Review test project")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "검토 상태 되돌리기" }));
+
+    await waitFor(() => {
+      expect(api.resetClipReview).toHaveBeenCalledWith(11);
+    });
+    expect((await screen.findAllByText("검토 상태를 되돌렸습니다")).length).toBeGreaterThan(0);
   });
 });

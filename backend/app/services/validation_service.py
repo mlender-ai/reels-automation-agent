@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import HTTPException
+from app.core.constants import SubtitlePreset
 
 
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".webm", ".mkv"}
@@ -18,6 +19,8 @@ ALLOWED_VIDEO_CONTENT_TYPES = {
 MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024 * 1024
 MIN_CLIP_DURATION_SECONDS = 8.0
 MAX_CLIP_DURATION_SECONDS = 45.0
+MIN_TITLE_LENGTH = 6
+MIN_DESCRIPTION_LENGTH = 12
 
 
 def ensure_source_video_duration(duration_seconds: float | None) -> float:
@@ -76,6 +79,32 @@ def validate_clip_window(start_time: float, end_time: float, max_source_duration
             detail=f"Clip end_time must stay within the source video duration ({max_source_duration:.1f}s)",
         )
     return duration
+
+
+def validate_clip_metadata(title: str, description: str, hashtags: str, subtitle_preset: str) -> None:
+    normalized_title = " ".join((title or "").split()).strip()
+    normalized_description = " ".join((description or "").split()).strip()
+    normalized_hashtags = " ".join((hashtags or "").split()).strip()
+
+    if len(normalized_title) < MIN_TITLE_LENGTH:
+        raise HTTPException(status_code=422, detail=f"Clip title must be at least {MIN_TITLE_LENGTH} characters long before approval")
+    if len(normalized_description) < MIN_DESCRIPTION_LENGTH:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Clip description must be at least {MIN_DESCRIPTION_LENGTH} characters long before approval",
+        )
+    parsed_hashtags = [tag for tag in normalized_hashtags.split() if tag.startswith("#")]
+    if len(parsed_hashtags) < 1:
+        raise HTTPException(status_code=422, detail="Clip hashtags must include at least one #tag before approval")
+    if subtitle_preset not in {preset.value for preset in SubtitlePreset}:
+        raise HTTPException(status_code=422, detail="Subtitle preset is invalid for export")
+
+
+def validate_generated_subtitle_file(path: Path) -> None:
+    if not path.exists():
+        raise HTTPException(status_code=500, detail="Subtitle file was not created before export")
+    if path.stat().st_size <= 0:
+        raise HTTPException(status_code=500, detail="Subtitle file is empty, so burn-in export cannot continue")
 
 
 def normalize_transcript_segments(raw_segments: list[dict]) -> list[dict]:

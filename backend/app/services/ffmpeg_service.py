@@ -15,6 +15,8 @@ def _humanize_command_error(detail: str, error_prefix: str) -> str:
         return f"{error_prefix}: The local disk ran out of space while processing media."
     if "moov atom not found" in lowered or "invalid data found when processing input" in lowered:
         return f"{error_prefix}: FFmpeg could not read the local source video. Re-export or replace the file and try again."
+    if "no such filter: 'subtitles'" in lowered or "filter not found" in lowered and "subtitles" in lowered:
+        return f"{error_prefix}: This FFmpeg build does not support subtitle burn-in. Install FFmpeg with libass support and try again."
     if "no such file or directory" in lowered and "subtitles" in lowered:
         return f"{error_prefix}: The generated subtitle file could not be found during export."
     if "permission denied" in lowered:
@@ -85,11 +87,14 @@ def export_vertical_clip(
 ) -> None:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
+    subtitle_source = Path(subtitle_path)
+    if not subtitle_source.exists():
+        raise HTTPException(status_code=500, detail="Unable to export clip: subtitle file is missing before FFmpeg starts.")
     temporary_subtitle_copy: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(prefix="raa-subtitles-", suffix=".srt", delete=False) as handle:
             temporary_subtitle_copy = Path(handle.name)
-        shutil.copy2(Path(subtitle_path), temporary_subtitle_copy)
+        shutil.copy2(subtitle_source, temporary_subtitle_copy)
         escaped_subtitle_path = _escape_subtitle_path(temporary_subtitle_copy)
         vf = (
             "scale=1080:1920:force_original_aspect_ratio=increase,"

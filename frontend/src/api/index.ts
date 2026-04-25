@@ -58,6 +58,7 @@ export const api = {
     }),
   approveClip: (clipId: number) => request<ClipCandidate>(`/clips/${clipId}/approve`, { method: "POST" }),
   rejectClip: (clipId: number) => request<ClipCandidate>(`/clips/${clipId}/reject`, { method: "POST" }),
+  resetClipReview: (clipId: number) => request<ClipCandidate>(`/clips/${clipId}/reset-review`, { method: "POST" }),
   exportClip: (clipId: number) => request<ExportRecord>(`/clips/${clipId}/export`, { method: "POST" }),
   startClipExportJob: (clipId: number) => request<WorkflowJob>(`/clips/${clipId}/export/start`, { method: "POST" }),
   listExports: () => request<ExportRecord[]>("/exports"),

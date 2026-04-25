@@ -12,10 +12,23 @@ from app.models.project import Project
 from app.models.transcript import Transcript
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.subtitle_service import build_subtitle_style, write_clip_srt
-from app.services.validation_service import validate_clip_window
+from app.services.validation_service import validate_clip_metadata, validate_clip_window, validate_generated_subtitle_file
 from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
 
 logger = get_logger(__name__)
+
+
+def _next_available_file_path(path: Path) -> Path:
+    if not path.exists():
+        return path
+    stem = path.stem
+    suffix = path.suffix
+    counter = 2
+    while True:
+        candidate = path.with_name(f"{stem}-{counter}{suffix}")
+        if not candidate.exists():
+            return candidate
+        counter += 1
 
 
 def export_clip(
@@ -35,8 +48,8 @@ def export_clip(
     exports_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     base_name = build_export_basename(clip.id, clip.suggested_title, timestamp)
-    output_file = exports_dir / f"{base_name}.mp4"
-    thumbnail_file = exports_dir / f"{base_name}.jpg"
+    output_file = _next_available_file_path(exports_dir / f"{base_name}.mp4")
+    thumbnail_file = _next_available_file_path(exports_dir / f"{base_name}.jpg")
     export_record = Export(
         clip_candidate_id=clip.id,
         status=ExportStatus.processing.value,
@@ -54,7 +67,9 @@ def export_clip(
 
     try:
         clip.duration = validate_clip_window(clip.start_time, clip.end_time, max_source_duration=source_duration_seconds)
+        validate_clip_metadata(clip.suggested_title, clip.suggested_description, clip.suggested_hashtags, clip.subtitle_preset)
         subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
+        validate_generated_subtitle_file(subtitle_file)
         export_vertical_clip(
             input_path=resolve_data_path(source_path),
             output_path=output_file,
