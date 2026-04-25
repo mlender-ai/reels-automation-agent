@@ -76,6 +76,89 @@ func drawBorder(in rect: NSRect, radius: CGFloat) {
 }
 
 switch style {
+case "shorts-punch-title":
+    let cardRect = NSRect(x: 0, y: 0, width: width, height: height)
+    let card = NSBezierPath(roundedRect: cardRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    color(from: backgroundHex, alpha: backgroundAlpha).setFill()
+    card.fill()
+
+    let parts = text.components(separatedBy: "||")
+    let primary = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? text
+    let secondary = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+
+    let eyebrowParagraph = NSMutableParagraphStyle()
+    eyebrowParagraph.alignment = .center
+    let eyebrowText = eyebrow.isEmpty ? "지금 이 장면" : eyebrow
+    let eyebrowAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: 17, weight: .semibold),
+        .foregroundColor: NSColor(calibratedWhite: 0.88, alpha: 0.9),
+        .paragraphStyle: eyebrowParagraph,
+    ]
+    (eyebrowText as NSString).draw(
+        in: NSRect(x: 24, y: height - 50, width: width - 48, height: 20),
+        withAttributes: eyebrowAttributes
+    )
+
+    let primaryParagraph = NSMutableParagraphStyle()
+    primaryParagraph.alignment = .center
+    primaryParagraph.lineBreakMode = .byWordWrapping
+    let primaryShadow = NSShadow()
+    primaryShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.96)
+    primaryShadow.shadowBlurRadius = 10
+    primaryShadow.shadowOffset = NSSize(width: 0, height: -2)
+    let primaryAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .foregroundColor: NSColor.white,
+        .paragraphStyle: primaryParagraph,
+        .shadow: primaryShadow,
+    ]
+    (primary as NSString).draw(
+        in: NSRect(x: horizontalPadding, y: 104, width: width - horizontalPadding * 2, height: 66),
+        withAttributes: primaryAttributes
+    )
+
+    let secondaryParagraph = NSMutableParagraphStyle()
+    secondaryParagraph.alignment = .center
+    secondaryParagraph.lineBreakMode = .byWordWrapping
+    let secondaryShadow = NSShadow()
+    secondaryShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.96)
+    secondaryShadow.shadowBlurRadius = 12
+    secondaryShadow.shadowOffset = NSSize(width: 0, height: -2)
+    let secondaryAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize + 2, weight: .black),
+        .foregroundColor: color(from: accentHex, alpha: 1.0),
+        .paragraphStyle: secondaryParagraph,
+        .shadow: secondaryShadow,
+    ]
+    (secondary as NSString).draw(
+        in: NSRect(x: horizontalPadding, y: 32, width: width - horizontalPadding * 2, height: 72),
+        withAttributes: secondaryAttributes
+    )
+
+case "shorts-punch-subtitle":
+    let paragraphStyle = NSMutableParagraphStyle()
+    paragraphStyle.alignment = .center
+    paragraphStyle.lineBreakMode = .byWordWrapping
+    paragraphStyle.lineSpacing = 1
+
+    let subtitleShadow = NSShadow()
+    subtitleShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.98)
+    subtitleShadow.shadowBlurRadius = 14
+    subtitleShadow.shadowOffset = NSSize(width: 0, height: -3)
+
+    let subtitleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .foregroundColor: color(from: accentHex, alpha: 1.0),
+        .paragraphStyle: paragraphStyle,
+        .shadow: subtitleShadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.95),
+        .strokeWidth: -3.0,
+    ]
+    (text as NSString).draw(
+        in: NSRect(x: horizontalPadding, y: verticalPadding, width: width - horizontalPadding * 2, height: height - verticalPadding * 2),
+        withAttributes: subtitleAttributes
+    )
+
 case "shorts-fixed-title":
     let chipRect = NSRect(x: 0, y: 0, width: width, height: height)
     let chip = NSBezierPath(roundedRect: chipRect, xRadius: cornerRadius, yRadius: cornerRadius)

@@ -27,6 +27,7 @@ class StoryCue:
 class ClipStoryPackage:
     story_angle: str
     analysis_headline: str
+    supporting_line: str
     analysis_outline: list[str]
     title_treatment: str
     caption_treatment: str
@@ -232,6 +233,34 @@ def _build_profile_outline(profile: str, text: str) -> list[str]:
     return PROFILE_FALLBACK_OUTLINES.get(profile, PROFILE_FALLBACK_OUTLINES[CONTENT_PROFILE_GENERAL])[:3]
 
 
+def _compact_korean_copy(text: str, fallback: str) -> str:
+    normalized = " ".join((text or "").split()).strip()
+    if not normalized:
+        normalized = fallback
+    normalized = normalized.split(".")[0].split("!")[0].split("?")[0].strip()
+    replacements = [
+        ("장면입니다", ""),
+        ("장면이다", ""),
+        ("장면", ""),
+        ("이유입니다", "이유"),
+        ("입니다", ""),
+        ("이다", ""),
+        ("합니다", ""),
+        ("하는 순간", "터지는 순간"),
+        ("열립니다", "열림"),
+        ("넘어갑니다", "넘어감"),
+        ("먹습니다", "먹음"),
+    ]
+    for source, target in replacements:
+        normalized = normalized.replace(source, target)
+    normalized = normalized.strip(" .,!?\n\t")
+    if len(normalized) > 22:
+        normalized = normalized[:22].rstrip()
+    if normalized and not normalized.endswith(("!", "?")):
+        normalized = f"{normalized}!"
+    return normalized or fallback
+
+
 def _resolve_headline(subject: str | None, profile: str, recommended_format: str, text: str) -> str:
     resolved_subject = subject if _should_use_subject(subject) else None
     subject_prefix = f"{resolved_subject} " if resolved_subject else ""
@@ -250,6 +279,15 @@ def _resolve_headline(subject: str | None, profile: str, recommended_format: str
     if profile == CONTENT_PROFILE_BASEBALL:
         return f"{subject_prefix}승부 갈린 한 장면".strip()
     return f"{subject_prefix}이 장면만 계속 돌려보게 됨".strip()
+
+
+def _resolve_supporting_line(profile: str, suggested_description: str, hook_text: str, outline: list[str]) -> str:
+    fallback = outline[0] if outline else "지금 분위기 완전히 바뀜!"
+    base = suggested_description or hook_text or fallback
+    compact = _compact_korean_copy(base, fallback)
+    if profile == CONTENT_PROFILE_COMBAT_SPORTS and len(compact) < 10:
+        return f"{compact.rstrip('!?')} 바로 터짐!"
+    return compact
 
 
 def _build_cue_schedule(duration: float, outline: list[str], transcript_segments: list[dict]) -> list[StoryCue]:
@@ -355,10 +393,12 @@ def build_clip_story_package(
     outline = _build_profile_outline(resolved_profile, normalized)
     cues = _build_cue_schedule(duration, outline, transcript_segments or [])
     top_label = style_config["top_label"]
+    supporting_line = _resolve_supporting_line(resolved_profile, suggested_description, hook_text, outline)
 
     return ClipStoryPackage(
         story_angle=style_config["story_angle"],
         analysis_headline=headline,
+        supporting_line=supporting_line,
         analysis_outline=outline,
         title_treatment=style_config["title_treatment"],
         caption_treatment=style_config["caption_treatment"],

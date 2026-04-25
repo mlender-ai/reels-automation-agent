@@ -79,39 +79,39 @@ def build_story_overlay_assets(
     rendered_assets: list[RenderedOverlayAsset] = []
 
     title_card = OverlayCardSpec(
-        text=story_package.analysis_headline,
-        width=920,
-        height=156,
-        font_size=62,
-        horizontal_padding=28,
-        vertical_padding=18,
+        text=f"{story_package.analysis_headline}||{story_package.supporting_line}",
+        width=960,
+        height=248,
+        font_size=58,
+        horizontal_padding=34,
+        vertical_padding=24,
         background_hex="000000",
-        background_alpha=0.64,
+        background_alpha=0.88,
         foreground_hex="FFFFFF",
-        corner_radius=28,
-        style="shorts-fixed-title",
-        eyebrow="",
-        accent_hex="FFFFFF",
+        corner_radius=18,
+        style="shorts-punch-title",
+        eyebrow=story_package.top_label,
+        accent_hex="8BFF39",
     )
     title_path = overlay_dir / f"clip-{clip_id}-story-title.png"
     _render_card(title_path, title_card)
-    rendered_assets.append(RenderedOverlayAsset(path=title_path, x="(W-w)/2", y="72", start=0.0, end=None))
+    rendered_assets.append(RenderedOverlayAsset(path=title_path, x="(W-w)/2", y="24", start=0.0, end=None))
 
     for index, cue in enumerate((subtitle_cues or [])[:8], start=1):
         caption_card = OverlayCardSpec(
             text=cue["text"],
             width=860,
-            height=176,
-            font_size=42,
-            horizontal_padding=34,
-            vertical_padding=24,
+            height=120,
+            font_size=34,
+            horizontal_padding=24,
+            vertical_padding=14,
             background_hex="000000",
-            background_alpha=0.52,
+            background_alpha=0.0,
             foreground_hex="FFFFFF",
-            corner_radius=26,
-            style="shorts-subtitle",
+            corner_radius=0,
+            style="shorts-punch-subtitle",
             eyebrow="",
-            accent_hex="FFFFFF",
+            accent_hex="8BFF39",
         )
         caption_path = overlay_dir / f"clip-{clip_id}-subtitle-{index}.png"
         _render_card(caption_path, caption_card)
@@ -119,7 +119,7 @@ def build_story_overlay_assets(
             RenderedOverlayAsset(
                 path=caption_path,
                 x="(W-w)/2",
-                y="H-h-150",
+                y="H-h-230",
                 start=float(cue["start"]),
                 end=float(cue["end"]),
             )
