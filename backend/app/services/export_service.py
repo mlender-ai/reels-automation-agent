@@ -10,7 +10,12 @@ from app.models.clip_candidate import ClipCandidate
 from app.models.export import Export
 from app.models.project import Project
 from app.models.transcript import Transcript
-from app.services.audio_render_service import build_voiceover_copy, render_background_music, render_voiceover_audio
+from app.services.audio_render_service import (
+    build_voiceover_copy,
+    render_background_music,
+    render_mixed_short_audio,
+    render_voiceover_audio,
+)
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.overlay_render_service import build_story_overlay_assets
 from app.services.shorts_story_service import build_story_package_from_clip
@@ -76,6 +81,7 @@ def export_clip(
         overlay_assets = []
         narration_file = None
         background_music_file = None
+        mixed_audio_file = None
         clip_transcript_segments = extract_clip_transcript_segments(clip, transcript)
         try:
             story_package = build_story_package_from_clip(
@@ -93,6 +99,16 @@ def export_clip(
             voiceover_copy = build_voiceover_copy(clip, story_package)
             narration_file = render_voiceover_audio(project.id, clip.id, base_name, voiceover_copy)
             background_music_file = render_background_music(project.id, clip.id, base_name, clip.duration)
+            mixed_audio_file = render_mixed_short_audio(
+                project.id,
+                clip.id,
+                base_name,
+                source_video_path=resolve_data_path(source_path),
+                clip_start_time=clip.start_time,
+                clip_duration=clip.duration,
+                narration_path=narration_file,
+                background_music_path=background_music_file,
+            )
         except Exception as exc:  # pragma: no cover - best effort styling fallback
             logger.warning("Story overlay generation skipped. project_id=%s clip_id=%s detail=%s", project.id, clip.id, exc)
         export_vertical_clip(
@@ -104,6 +120,7 @@ def export_clip(
             preset_style=build_subtitle_style(clip.subtitle_preset),
             overlay_assets=overlay_assets,
             burn_in_subtitles=not bool(overlay_assets),
+            external_audio_path=mixed_audio_file,
             narration_path=narration_file,
             background_music_path=background_music_file,
         )

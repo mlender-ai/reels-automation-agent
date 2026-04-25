@@ -105,6 +105,7 @@ def export_vertical_clip(
     preset_style: str,
     overlay_assets: list[RenderedOverlayAsset] | None = None,
     burn_in_subtitles: bool = True,
+    external_audio_path: str | Path | None = None,
     narration_path: str | Path | None = None,
     background_music_path: str | Path | None = None,
     source_audio_volume: float = 0.16,
@@ -129,6 +130,7 @@ def export_vertical_clip(
 
         overlay_assets = overlay_assets or []
         has_source_audio = _input_has_audio(input_path)
+        has_external_audio = external_audio_path is not None and Path(external_audio_path).exists()
         has_narration = narration_path is not None and Path(narration_path).exists()
         has_bgm = background_music_path is not None and Path(background_music_path).exists()
         filter_parts = [
@@ -168,6 +170,11 @@ def export_vertical_clip(
             input_index += len(overlay_assets)
             narration_input_index = None
             bgm_input_index = None
+            external_audio_input_index = None
+            if has_external_audio:
+                command.extend(["-i", str(Path(external_audio_path).resolve())])
+                external_audio_input_index = input_index
+                input_index += 1
             if has_narration:
                 command.extend(["-i", str(Path(narration_path).resolve())])
                 narration_input_index = input_index
@@ -178,33 +185,36 @@ def export_vertical_clip(
                 input_index += 1
 
             audio_labels: list[str] = []
-            if has_source_audio:
-                filter_chain.append(
-                    f"[0:a]volume={source_audio_volume:.2f},aresample=async=1:first_pts=0[a_src]"
-                )
-                audio_labels.append("[a_src]")
-            if narration_input_index is not None:
-                filter_chain.append(
-                    f"[{narration_input_index}:a]volume={narration_volume:.2f},aresample=async=1:first_pts=0,adelay=260:all=1[a_tts]"
-                )
-                audio_labels.append("[a_tts]")
-            if bgm_input_index is not None:
-                fade_out_start = max(duration - 1.1, 0.0)
-                filter_chain.append(
-                    f"[{bgm_input_index}:a]volume={background_music_volume:.2f},aresample=async=1:first_pts=0,"
-                    f"afade=t=in:st=0:d=0.7,afade=t=out:st={fade_out_start:.2f}:d=0.9[a_bgm]"
-                )
-                audio_labels.append("[a_bgm]")
-
-            final_audio_label = None
-            if audio_labels:
-                if len(audio_labels) == 1:
-                    final_audio_label = audio_labels[0]
-                else:
-                    final_audio_label = "[aout]"
+            if external_audio_input_index is not None:
+                final_audio_label = f"{external_audio_input_index}:a:0"
+            else:
+                final_audio_label = None
+            if final_audio_label is None:
+                if has_source_audio:
                     filter_chain.append(
-                        f"{''.join(audio_labels)}amix=inputs={len(audio_labels)}:dropout_transition=0:normalize=0[aout]"
+                        f"[0:a]volume={source_audio_volume:.2f},aresample=async=1:first_pts=0[a_src]"
                     )
+                    audio_labels.append("[a_src]")
+                if narration_input_index is not None:
+                    filter_chain.append(
+                        f"[{narration_input_index}:a]volume={narration_volume:.2f},aresample=async=1:first_pts=0,adelay=260:all=1[a_tts]"
+                    )
+                    audio_labels.append("[a_tts]")
+                if bgm_input_index is not None:
+                    fade_out_start = max(duration - 1.1, 0.0)
+                    filter_chain.append(
+                        f"[{bgm_input_index}:a]volume={background_music_volume:.2f},aresample=async=1:first_pts=0,"
+                        f"afade=t=in:st=0:d=0.7,afade=t=out:st={fade_out_start:.2f}:d=0.9[a_bgm]"
+                    )
+                    audio_labels.append("[a_bgm]")
+                if audio_labels:
+                    if len(audio_labels) == 1:
+                        final_audio_label = audio_labels[0]
+                    else:
+                        final_audio_label = "[aout]"
+                        filter_chain.append(
+                            f"{''.join(audio_labels)}amix=inputs={len(audio_labels)}:dropout_transition=0:normalize=0[aout]"
+                        )
 
             command.extend(
                 [
@@ -217,22 +227,31 @@ def export_vertical_clip(
                 ]
             )
             if final_audio_label:
-                command.extend(["-map", final_audio_label])
+                if final_audio_label.endswith(":a:0"):
+                    command.extend(["-map", final_audio_label])
+                else:
+                    command.extend(["-map", final_audio_label])
             else:
                 command.extend(["-map", "0:a?"])
         else:
+            audio_input_index = None
+            if has_external_audio:
+                command.extend(["-i", str(Path(external_audio_path).resolve())])
+                audio_input_index = 1
             command.extend(
                 [
                     "-t",
                     f"{duration:.3f}",
                     "-map",
                     "0:v:0",
-                    "-map",
-                    "0:a?",
                     "-vf",
                     filter_parts[0],
                 ]
             )
+            if audio_input_index is not None:
+                command.extend(["-map", f"{audio_input_index}:a:0"])
+            else:
+                command.extend(["-map", "0:a?"])
         command.extend(
             [
                 "-c:v",
@@ -247,6 +266,7 @@ def export_vertical_clip(
                 "aac",
                 "-b:a",
                 "192k",
+                "-shortest",
                 "-movflags",
                 "+faststart",
                 str(output.resolve()),

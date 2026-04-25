@@ -24,6 +24,24 @@ def _run_local_command(command: list[str], error_prefix: str) -> None:
         raise HTTPException(status_code=500, detail=f"{error_prefix}: {detail}") from exc
 
 
+def _source_has_audio(source_path: str | Path) -> bool:
+    command = [
+        settings.ffprobe_binary,
+        "-hide_banner",
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index",
+        "-of",
+        "csv=p=0",
+        str(Path(source_path).resolve()),
+    ]
+    completed = subprocess.run(command, capture_output=True, text=True, check=False)
+    return completed.returncode == 0 and bool(completed.stdout.strip())
+
+
 def build_voiceover_copy(clip, story_package: ClipStoryPackage) -> str:
     lines: list[str] = []
     for candidate in [clip.suggested_description, story_package.supporting_line, *story_package.analysis_outline]:
@@ -102,4 +120,91 @@ def render_background_music(project_id: int, clip_id: int, base_name: str, durat
     ]
     _run_local_command(command, "Unable to generate background music bed")
     logger.info("Rendered background music bed. project_id=%s clip_id=%s", project_id, clip_id)
+    return output_path
+
+
+def render_mixed_short_audio(
+    project_id: int,
+    clip_id: int,
+    base_name: str,
+    *,
+    source_video_path: str | Path,
+    clip_start_time: float,
+    clip_duration: float,
+    narration_path: str | Path | None = None,
+    background_music_path: str | Path | None = None,
+) -> Path:
+    exports_dir = project_exports_dir(project_id)
+    exports_dir.mkdir(parents=True, exist_ok=True)
+    output_path = exports_dir / f"{base_name}-mix.wav"
+
+    command = [
+        settings.ffmpeg_binary,
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-t",
+        f"{clip_duration:.3f}",
+        "-i",
+        "anullsrc=channel_layout=mono:sample_rate=44100",
+    ]
+    filter_parts = ["[0:a]atrim=0:{duration},asetpts=N/SR/TB[silence]".format(duration=clip_duration)]
+    mix_inputs = ["[silence]"]
+    input_index = 1
+
+    if _source_has_audio(source_video_path):
+        command.extend(
+            [
+                "-ss",
+                f"{clip_start_time:.3f}",
+                "-t",
+                f"{clip_duration:.3f}",
+                "-i",
+                str(Path(source_video_path).resolve()),
+            ]
+        )
+        filter_parts.append(
+            f"[{input_index}:a]volume=0.12,aresample=44100,atrim=0:{clip_duration:.3f},asetpts=N/SR/TB[a_src]"
+        )
+        mix_inputs.append("[a_src]")
+        input_index += 1
+
+    if narration_path and Path(narration_path).exists():
+        command.extend(["-i", str(Path(narration_path).resolve())])
+        filter_parts.append(
+            f"[{input_index}:a]aresample=44100,atrim=0:{clip_duration:.3f},asetpts=N/SR/TB,adelay=220:all=1,volume=1.0[a_tts]"
+        )
+        mix_inputs.append("[a_tts]")
+        input_index += 1
+
+    if background_music_path and Path(background_music_path).exists():
+        fade_out_start = max(clip_duration - 1.1, 0.0)
+        command.extend(["-i", str(Path(background_music_path).resolve())])
+        filter_parts.append(
+            f"[{input_index}:a]aresample=44100,atrim=0:{clip_duration:.3f},asetpts=N/SR/TB,"
+            f"volume=0.12,afade=t=in:st=0:d=0.8,afade=t=out:st={fade_out_start:.2f}:d=0.9[a_bgm]"
+        )
+        mix_inputs.append("[a_bgm]")
+
+    filter_parts.append(
+        f"{''.join(mix_inputs)}amix=inputs={len(mix_inputs)}:dropout_transition=0:normalize=0,"
+        f"atrim=0:{clip_duration:.3f},asetpts=N/SR/TB[aout]"
+    )
+
+    command.extend(
+        [
+            "-filter_complex",
+            ";".join(filter_parts),
+            "-map",
+            "[aout]",
+            "-c:a",
+            "pcm_s16le",
+            str(output_path.resolve()),
+        ]
+    )
+    _run_local_command(command, "Unable to render mixed short audio")
+    logger.info("Rendered mixed short audio. project_id=%s clip_id=%s", project_id, clip_id)
     return output_path
