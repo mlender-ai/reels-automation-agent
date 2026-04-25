@@ -152,7 +152,7 @@ def serialize_project(project: Project) -> dict:
     rejected_clip_count = len([clip for clip in clips if clip.status == "rejected"])
     approved_clip_count = len([clip for clip in clips if clip.status in {"approved", "exported"}])
     latest_export = completed_exports[0] if completed_exports else None
-    next_action = "upload_source"
+    next_action = "ingest_source" if project.source_type == "youtube" else "upload_source"
     if latest_source and not latest_transcript:
         next_action = "transcribe"
     elif latest_transcript and not clips:

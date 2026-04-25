@@ -197,6 +197,46 @@ class ApiFlowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Unsupported upload content type", response.json()["detail"])
 
+    def test_youtube_ingest_endpoint_imports_source_for_project(self) -> None:
+        project = self.client.post("/projects", json={"title": "YouTube import", "source_type": "youtube"}).json()
+
+        with patch(
+            "app.api.projects.import_youtube_source",
+            return_value={
+                "id": project["id"],
+                "title": "YouTube import",
+            },
+        ) as import_mock, patch(
+            "app.api.projects.serialize_project",
+            return_value={
+                "id": project["id"],
+                "title": "YouTube import",
+                "source_type": "youtube",
+                "status": "uploaded",
+                "source_path": "projects/1/source/demo.mp4",
+                "created_at": project["created_at"],
+                "updated_at": project["updated_at"],
+                "clip_count": 0,
+                "pending_clip_count": 0,
+                "rejected_clip_count": 0,
+                "approved_clip_count": 0,
+                "export_count": 0,
+                "next_action": "transcribe",
+                "source_video": None,
+                "latest_transcript": None,
+                "latest_export": None,
+                "transcript_status": "missing",
+                "clip_generation_status": "missing",
+            },
+        ):
+            response = self.client.post(
+                f"/projects/{project['id']}/ingest-youtube",
+                json={"url": "https://www.youtube.com/watch?v=test123"},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        import_mock.assert_called_once()
+
     def test_generate_clips_requires_transcript(self) -> None:
         project = self._create_project()
         self._upload_source(project["id"])

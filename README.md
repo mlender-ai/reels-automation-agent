@@ -9,23 +9,24 @@ It has four layers:
 3. Automation Layer
 4. Auto-PR Layer
 
-The product turns a locally uploaded long-form video into reviewable short clips, subtitle-burned vertical exports, and mock publish jobs.
+The product turns a locally uploaded video or a user-supplied YouTube URL into reviewable short clips, subtitle-burned vertical exports, and mock publish jobs.
 
 The automation system continuously reviews the repository, drafts issues, proposes safe patch bundles, and can open draft pull requests for small bounded fixes. Human review remains the final approval boundary.
 
-This repository does not download videos from external platforms. Version one is strictly local-upload based.
+Version one stays local-first. It supports direct local uploads and user-supplied YouTube watch or Shorts URLs that are ingested into the local project workspace before processing.
 
 ## Current Goal
 
 This repository is the basecamp for two tracks that evolve together:
 
-1. a local-first shortform automation app for upload, transcript, clip generation, approval, export, and mock publish
+1. a local-first shortform automation app for local upload or YouTube URL ingest, transcript, clip generation, approval, export, and mock publish
 2. an AI operating system that reviews the repo, writes reports, drafts issues, proposes small patch bundles, and opens draft PRs only when explicitly allowed
 
 ## Product Features
 
 - project creation
 - local video upload
+- user-supplied YouTube watch / Shorts URL ingest into the local source folder
 - transcript extraction with `faster-whisper`
 - clip candidate generation
 - candidate editing
@@ -165,6 +166,7 @@ Key backend env vars:
 - `RAA_WHISPER_COMPUTE_TYPE`
 - `RAA_FFMPEG_BINARY`
 - `RAA_FFPROBE_BINARY`
+- `RAA_YTDLP_ENABLED`
 
 ### Frontend run
 
@@ -202,13 +204,19 @@ VITE_API_BASE_URL=http://127.0.0.1:8765 npm run dev -- --host 127.0.0.1 --port 8
 ## Local Workflow
 
 1. Start backend and frontend.
-2. Create a project and upload a local video.
+2. Create a project and either upload a local video or paste a YouTube watch / Shorts URL.
 3. Extract the transcript. The project page now queues a background job and polls progress automatically.
 4. Generate clip candidates. The project detail page will refresh and route you into the review queue once candidates are ready.
 5. Review one candidate, nudge timing, and approve or reject it.
 6. Export a vertical MP4. Export now runs as a background job from the clip review screen.
 7. Review the export from the exports page after the export job completes.
 8. Queue a mock publish job and monitor its result from the clip review page or publish queue.
+
+Notes for YouTube URL ingest:
+
+- the app pulls the linked source into `backend/data/projects/{project_id}/source/` first, then runs the same local pipeline
+- use only links you are authorized to process in your workflow
+- if local network access or `yt-dlp` is unavailable, URL ingest will fail while direct local upload still works
 
 Optional demo seed:
 

@@ -6,6 +6,7 @@ __pycache__/
 .ruff_cache/
 
 backend/.venv/
+backend/.vendor/
 backend/data/app.db
 backend/data/models/
 backend/data/seed/*.mp4

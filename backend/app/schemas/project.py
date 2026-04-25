@@ -12,6 +12,10 @@ class ProjectCreate(BaseModel):
     source_type: str = "upload"
 
 
+class ProjectYouTubeImportRequest(BaseModel):
+    url: str = Field(min_length=10, max_length=2048)
+
+
 class SourceVideoRead(ORMModel):
     id: int
     project_id: int

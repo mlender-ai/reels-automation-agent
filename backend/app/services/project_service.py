@@ -90,6 +90,69 @@ def reset_project_outputs(db: Session, project: Project) -> None:
     _clear_directory_contents(project_exports_dir(project.id))
 
 
+def _persist_source_video_record(
+    db: Session,
+    project: Project,
+    *,
+    stored_file_path: Path,
+    original_filename: str,
+    cleanup_previous_source: bool = True,
+) -> Project:
+    try:
+        metadata = probe_video(stored_file_path)
+    except HTTPException as exc:
+        logger.warning(
+            "Source file could not be probed as video. project_id=%s filename=%s detail=%s",
+            project.id,
+            original_filename,
+            exc.detail,
+        )
+        stored_file_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400,
+            detail="The imported source could not be parsed as a supported video. Try another video or source URL.",
+        ) from exc
+
+    relative_path = to_relative_data_path(stored_file_path)
+    existing_video = project.source_videos[0] if project.source_videos else None
+    previous_video_path = existing_video.stored_path if existing_video else None
+    reset_project_outputs(db, project)
+    if existing_video:
+        existing_video.original_filename = original_filename
+        existing_video.stored_path = relative_path
+        existing_video.duration_seconds = metadata["duration_seconds"]
+        existing_video.width = metadata["width"]
+        existing_video.height = metadata["height"]
+        existing_video.fps = metadata["fps"]
+    else:
+        existing_video = SourceVideo(
+            project_id=project.id,
+            original_filename=original_filename,
+            stored_path=relative_path,
+            duration_seconds=metadata["duration_seconds"],
+            width=metadata["width"],
+            height=metadata["height"],
+            fps=metadata["fps"],
+        )
+        db.add(existing_video)
+
+    project.source_path = relative_path
+    project.status = ProjectStatus.uploaded.value
+    db.add(project)
+    db.commit()
+    if cleanup_previous_source and previous_video_path and previous_video_path != relative_path:
+        resolve_data_path(previous_video_path).unlink(missing_ok=True)
+    logger.info(
+        "Stored project source. project_id=%s duration_seconds=%s width=%s height=%s fps=%s",
+        project.id,
+        metadata["duration_seconds"],
+        metadata["width"],
+        metadata["height"],
+        metadata["fps"],
+    )
+    return get_project_or_404(db, project.id)
+
+
 def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -> Project:
     if not upload_file.filename:
         logger.warning("Upload rejected because filename is missing. project_id=%s", project.id)
@@ -113,60 +176,26 @@ def save_source_upload(db: Session, project: Project, upload_file: UploadFile) -
     with target.open("wb") as buffer:
         shutil.copyfileobj(upload_file.file, buffer)
     upload_file.file.close()
-
-    try:
-        metadata = probe_video(target)
-    except HTTPException as exc:
-        logger.warning(
-            "Uploaded file could not be probed as video. project_id=%s filename=%s detail=%s",
-            project.id,
-            upload_file.filename,
-            exc.detail,
-        )
-        target.unlink(missing_ok=True)
-        raise HTTPException(
-            status_code=400,
-            detail="Uploaded file could not be parsed as a supported video. Try another local video file.",
-        ) from exc
-
-    relative_path = to_relative_data_path(target)
-    existing_video = project.source_videos[0] if project.source_videos else None
-    previous_video_path = existing_video.stored_path if existing_video else None
-    reset_project_outputs(db, project)
-    if existing_video:
-        existing_video.original_filename = upload_file.filename
-        existing_video.stored_path = relative_path
-        existing_video.duration_seconds = metadata["duration_seconds"]
-        existing_video.width = metadata["width"]
-        existing_video.height = metadata["height"]
-        existing_video.fps = metadata["fps"]
-    else:
-        existing_video = SourceVideo(
-            project_id=project.id,
-            original_filename=upload_file.filename,
-            stored_path=relative_path,
-            duration_seconds=metadata["duration_seconds"],
-            width=metadata["width"],
-            height=metadata["height"],
-            fps=metadata["fps"],
-        )
-        db.add(existing_video)
-
-    project.source_path = relative_path
-    project.status = ProjectStatus.uploaded.value
-    db.add(project)
-    db.commit()
-    if previous_video_path and previous_video_path != relative_path:
-        resolve_data_path(previous_video_path).unlink(missing_ok=True)
-    logger.info(
-        "Stored source upload. project_id=%s duration_seconds=%s width=%s height=%s fps=%s",
-        project.id,
-        metadata["duration_seconds"],
-        metadata["width"],
-        metadata["height"],
-        metadata["fps"],
+    return _persist_source_video_record(
+        db,
+        project,
+        stored_file_path=target,
+        original_filename=upload_file.filename,
     )
-    return get_project_or_404(db, project.id)
+
+
+def save_downloaded_source(db: Session, project: Project, source_file_path: Path, original_filename: str) -> Project:
+    ensure_project_directories(project.id)
+    target = build_upload_target(project.id, original_filename)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if source_file_path.resolve() != target.resolve():
+        shutil.move(str(source_file_path), str(target))
+    return _persist_source_video_record(
+        db,
+        project,
+        stored_file_path=target,
+        original_filename=original_filename,
+    )
 
 
 def latest_transcript(project: Project) -> Transcript | None:

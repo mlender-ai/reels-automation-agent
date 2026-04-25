@@ -27,6 +27,8 @@ export function truncate(text: string, length = 120) {
 
 export function nextActionLabel(nextAction?: string) {
   switch (nextAction) {
+    case "ingest_source":
+      return "YouTube 링크 가져오기";
     case "transcribe":
       return "자막 추출 실행";
     case "generate_clips":

@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     whisper_compute_type: str = "int8"
     ffmpeg_binary: str = "ffmpeg"
     ffprobe_binary: str = "ffprobe"
+    ytdlp_vendor_path: Path = BACKEND_DIR / ".vendor"
+    ytdlp_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

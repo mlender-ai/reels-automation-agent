@@ -20,6 +20,7 @@ vi.mock("../api", () => ({
   api: {
     createProject: vi.fn(),
     uploadProjectVideo: vi.fn(),
+    ingestProjectYouTube: vi.fn(),
   },
 }));
 
@@ -28,6 +29,7 @@ describe("NewProjectPage", () => {
     navigateMock.mockReset();
     vi.mocked(api.createProject).mockReset();
     vi.mocked(api.uploadProjectVideo).mockReset();
+    vi.mocked(api.ingestProjectYouTube).mockReset();
   });
 
   afterEach(() => {
@@ -51,7 +53,7 @@ describe("NewProjectPage", () => {
 
     const { container } = renderWithProviders(<NewProjectPage />);
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const titleInput = screen.getAllByPlaceholderText(/격투기 해설 영상 하이라이트/i)[0];
+    const titleInput = screen.getByPlaceholderText(/마이클 타이슨 경기 분석 숏츠/i);
 
     await user.type(titleInput, "Failure case");
     await user.upload(input, new File(["video"], "episode.mp4", { type: "video/mp4" }));
@@ -69,7 +71,7 @@ describe("NewProjectPage", () => {
 
     const { container } = renderWithProviders(<NewProjectPage />);
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const titleInput = screen.getAllByPlaceholderText(/격투기 해설 영상 하이라이트/i)[0];
+    const titleInput = screen.getByPlaceholderText(/마이클 타이슨 경기 분석 숏츠/i);
 
     await user.type(titleInput, "Success case");
     await user.upload(input, new File(["video"], "episode.mp4", { type: "video/mp4" }));
@@ -80,5 +82,37 @@ describe("NewProjectPage", () => {
       expect(api.uploadProjectVideo).toHaveBeenCalled();
       expect(navigateMock).toHaveBeenCalledWith("/projects/24");
     });
+  });
+
+  it("유튜브 링크 모드에서 링크 가져오기가 성공하면 프로젝트 상세 화면으로 이동한다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.createProject).mockResolvedValue({ id: 41 } as never);
+    vi.mocked(api.ingestProjectYouTube).mockResolvedValue({ id: 41 } as never);
+
+    renderWithProviders(<NewProjectPage />);
+
+    await user.click(screen.getByRole("button", { name: /youtube 링크/i }));
+    await user.type(screen.getByPlaceholderText(/마이클 타이슨 경기 분석 숏츠/i), "Tyson YouTube import");
+    await user.type(screen.getByPlaceholderText(/https:\/\/www\.youtube\.com\/watch\?v=/i), "https://www.youtube.com/watch?v=abc123xyz");
+    await user.click(screen.getByRole("button", { name: /프로젝트 만들기/i }));
+
+    await waitFor(() => {
+      expect(api.createProject).toHaveBeenCalledWith({ title: "Tyson YouTube import", source_type: "youtube" });
+      expect(api.ingestProjectYouTube).toHaveBeenCalledWith(41, "https://www.youtube.com/watch?v=abc123xyz");
+      expect(navigateMock).toHaveBeenCalledWith("/projects/41");
+    });
+  });
+
+  it("유튜브 링크가 잘못되면 인라인 오류를 보여준다", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<NewProjectPage />);
+
+    await user.click(screen.getByRole("button", { name: /youtube 링크/i }));
+    await user.type(screen.getByPlaceholderText(/마이클 타이슨 경기 분석 숏츠/i), "Bad URL");
+    await user.type(screen.getByPlaceholderText(/https:\/\/www\.youtube\.com\/watch\?v=/i), "https://vimeo.com/12345");
+    await user.click(screen.getByRole("button", { name: /프로젝트 만들기/i }));
+
+    expect(screen.getByText(/YouTube watch 링크 또는 Shorts 링크를 입력해 주세요/i)).toBeInTheDocument();
+    expect(api.createProject).not.toHaveBeenCalled();
   });
 });

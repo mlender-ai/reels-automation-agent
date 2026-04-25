@@ -5,7 +5,7 @@ from app.core.constants import WorkflowJobType
 from app.db.session import get_db
 from app.schemas.clip import ClipCandidateRead
 from app.schemas.creative_strategy import ProjectCreativeStrategyRead
-from app.schemas.project import ProjectCreate, ProjectDetail, ProjectRead, SourceVideoRead
+from app.schemas.project import ProjectCreate, ProjectDetail, ProjectRead, ProjectYouTubeImportRequest, SourceVideoRead
 from app.schemas.transcript import TranscriptRead
 from app.schemas.workflow_job import WorkflowJobRead
 from app.services.clip_scoring_service import generate_clip_candidates
@@ -23,6 +23,7 @@ from app.services.serializers import serialize_clip, serialize_project, serializ
 from app.services.transcription_service import transcribe_project
 from app.services.validation_service import ensure_source_video_duration
 from app.services.workflow_job_service import create_workflow_job, list_project_jobs
+from app.services.youtube_ingest_service import import_youtube_source
 from app.workers.workflow_worker import run_clip_generation_job, run_transcription_job
 
 
@@ -54,6 +55,17 @@ def upload_source_video(
 ) -> dict:
     project = get_project_or_404(db, project_id)
     updated_project = save_source_upload(db, project, file)
+    return serialize_project(updated_project)
+
+
+@router.post("/{project_id}/ingest-youtube", response_model=ProjectDetail)
+def ingest_youtube_source_endpoint(
+    project_id: int,
+    payload: ProjectYouTubeImportRequest,
+    db: Session = Depends(get_db),
+) -> dict:
+    project = get_project_or_404(db, project_id)
+    updated_project = import_youtube_source(db, project, payload.url)
     return serialize_project(updated_project)
 
 

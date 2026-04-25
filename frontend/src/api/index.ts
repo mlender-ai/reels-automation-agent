@@ -29,6 +29,11 @@ export const api = {
     formData.append("file", file);
     return requestForm<Project>(`/projects/${projectId}/upload`, formData);
   },
+  ingestProjectYouTube: (projectId: number, url: string) =>
+    request<Project>(`/projects/${projectId}/ingest-youtube`, {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
   getProjectTranscript: (projectId: number) => request<Transcript>(`/projects/${projectId}/transcript`),
   transcribeProject: (projectId: number) => request<Transcript>(`/projects/${projectId}/transcribe`, { method: "POST" }),
   startProjectTranscriptionJob: (projectId: number) =>
