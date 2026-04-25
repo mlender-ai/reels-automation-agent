@@ -120,8 +120,8 @@ case "shorts-clean-hero":
     titleParagraph.lineSpacing = -1
 
     let heavyShadow = NSShadow()
-    heavyShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.95)
-    heavyShadow.shadowBlurRadius = 10
+    heavyShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.72)
+    heavyShadow.shadowBlurRadius = 4
     heavyShadow.shadowOffset = NSSize(width: 0, height: -3)
 
     let titleRect = NSRect(x: horizontalPadding, y: 30, width: width - horizontalPadding * 2, height: height - 60)
@@ -136,8 +136,8 @@ case "shorts-clean-hero":
             .foregroundColor: NSColor.white,
             .paragraphStyle: titleParagraph,
             .shadow: heavyShadow,
-            .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.96),
-            .strokeWidth: -4.0,
+            .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 1.0),
+            .strokeWidth: -3.2,
         ]
     }
     let titleAttributes: [NSAttributedString.Key: Any] = [
@@ -145,8 +145,8 @@ case "shorts-clean-hero":
         .foregroundColor: NSColor.white,
         .paragraphStyle: titleParagraph,
         .shadow: heavyShadow,
-        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.96),
-        .strokeWidth: -4.0,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 1.0),
+        .strokeWidth: -3.2,
     ]
     (text as NSString).draw(in: centeredRect(for: text, in: titleRect, attributes: titleAttributes), withAttributes: titleAttributes)
 
@@ -157,8 +157,8 @@ case "shorts-clean-caption":
     paragraphStyle.lineSpacing = 4
 
     let subtitleShadow = NSShadow()
-    subtitleShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.98)
-    subtitleShadow.shadowBlurRadius = 14
+    subtitleShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.82)
+    subtitleShadow.shadowBlurRadius = 5
     subtitleShadow.shadowOffset = NSSize(width: 0, height: -4)
 
     let subtitleRect = NSRect(x: horizontalPadding, y: verticalPadding, width: width - horizontalPadding * 2, height: height - verticalPadding * 2)
@@ -173,8 +173,8 @@ case "shorts-clean-caption":
             .foregroundColor: NSColor.white,
             .paragraphStyle: paragraphStyle,
             .shadow: subtitleShadow,
-            .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.98),
-            .strokeWidth: -6.0,
+            .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 1.0),
+            .strokeWidth: -3.6,
         ]
     }
     let subtitleAttributes: [NSAttributedString.Key: Any] = [
@@ -182,8 +182,8 @@ case "shorts-clean-caption":
         .foregroundColor: NSColor.white,
         .paragraphStyle: paragraphStyle,
         .shadow: subtitleShadow,
-        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.98),
-        .strokeWidth: -6.0,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 1.0),
+        .strokeWidth: -3.6,
     ]
     (text as NSString).draw(in: centeredRect(for: text, in: subtitleRect, attributes: subtitleAttributes), withAttributes: subtitleAttributes)
 

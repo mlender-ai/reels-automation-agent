@@ -78,6 +78,12 @@ COMBAT_SPORTS_KEYWORDS = {
     "gloves",
     "sparring",
     "gym",
+    "tyson",
+    "mike",
+    "pacquiao",
+    "mayweather",
+    "ali",
+    "canelo",
     "southpaw",
     "orthodox",
     "파이터",
@@ -101,6 +107,12 @@ COMBAT_SPORTS_KEYWORDS = {
     "판정",
     "챔피언",
     "타이틀",
+    "타이슨",
+    "마이크타이슨",
+    "파퀴아오",
+    "메이웨더",
+    "알리",
+    "카넬로",
     "케이지",
     "옥타곤",
     "세컨",
@@ -596,4 +608,4 @@ def combat_sports_signal_score(text: str) -> int:
 def detect_content_profile_from_text(text: str) -> str:
     profile_scores = {profile: profile_signal_score(text, profile) for profile in SPORT_CONTENT_PROFILES}
     best_profile = max(profile_scores, key=profile_scores.get, default=CONTENT_PROFILE_GENERAL)
-    return best_profile if profile_scores.get(best_profile, 0) >= 4 else CONTENT_PROFILE_GENERAL
+    return best_profile if profile_scores.get(best_profile, 0) >= 3 else CONTENT_PROFILE_GENERAL

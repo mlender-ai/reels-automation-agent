@@ -130,6 +130,13 @@ COMBAT_TECHNIQUE_LIBRARY = [
     ({"finish", "knockout", "ko", "피니시", "다운"}, "마지막 연타로 흐름 끝냄"),
 ]
 
+COMBAT_QUOTE_PATTERNS = [
+    (("see what i want to see", "see what i want"), "원하는 걸 보기 전엔 안 멈춘다"),
+    (("go to sleep", "sleep in the dirt", "sleep in dirt"), "상대가 쓰러지는 장면만 본다"),
+    (("permanently", "being hurt", "hurt for me"), "끝날 때까지 계속 몰아붙인다"),
+    (("can't be", "must we breathe", "breathe out"), "끝까지 압박해서 흐름을 뺏는다"),
+]
+
 PROFILE_FALLBACK_OUTLINES = {
     CONTENT_PROFILE_COMBAT_SPORTS: [
         "초반 리듬부터 먹음",
@@ -227,10 +234,33 @@ def _build_combat_outline(text: str) -> list[str]:
     return outline[:3]
 
 
+def _build_combat_quote_outline(transcript_segments: list[dict]) -> list[str]:
+    transcript_text = " ".join(" ".join((segment.get("text") or "").split()) for segment in transcript_segments).lower()
+    outline: list[str] = []
+    for phrases, copy in COMBAT_QUOTE_PATTERNS:
+        if any(phrase in transcript_text for phrase in phrases) and copy not in outline:
+            outline.append(copy)
+    return outline[:3]
+
+
 def _build_profile_outline(profile: str, text: str) -> list[str]:
     if profile == CONTENT_PROFILE_COMBAT_SPORTS:
         return _build_combat_outline(text)
     return PROFILE_FALLBACK_OUTLINES.get(profile, PROFILE_FALLBACK_OUTLINES[CONTENT_PROFILE_GENERAL])[:3]
+
+
+def _build_transcript_outline(profile: str, transcript_segments: list[dict] | None, fallback_text: str) -> list[str]:
+    if not transcript_segments:
+        return _build_profile_outline(profile, fallback_text)
+    if profile == CONTENT_PROFILE_COMBAT_SPORTS:
+        quote_outline = _build_combat_quote_outline(transcript_segments)
+        if quote_outline:
+            while len(quote_outline) < 3:
+                fallback = PROFILE_FALLBACK_OUTLINES[CONTENT_PROFILE_COMBAT_SPORTS][len(quote_outline)]
+                if fallback not in quote_outline:
+                    quote_outline.append(fallback)
+            return quote_outline[:3]
+    return _build_profile_outline(profile, fallback_text)
 
 
 def _compact_korean_copy(text: str, fallback: str) -> str:
@@ -290,6 +320,8 @@ def _resolve_supporting_line(profile: str, suggested_description: str, hook_text
     compact = compact.replace("절대 안", "안")
     compact = compact.replace("원하는 장면이 나올 때까지", "원하는 장면 나올 때까지")
     compact = compact.replace("절대 물러서지", "절대 안 멈춤")
+    compact = compact.replace("선언입니다", "한마디다")
+    compact = compact.replace("선언", "한마디")
     if profile == CONTENT_PROFILE_COMBAT_SPORTS and len(compact) < 10:
         return f"{compact.rstrip('!?')} 바로 터짐!"
     return compact
@@ -397,10 +429,15 @@ def build_clip_story_package(
         headline = cleaned_title
     else:
         headline = _resolve_headline(subject, resolved_profile, strategy.recommended_format, normalized)
-    outline = _build_profile_outline(resolved_profile, normalized)
+    base_outline = _build_transcript_outline(resolved_profile, transcript_segments, normalized)
+    outline = list(base_outline)
     supporting_line = _resolve_supporting_line(resolved_profile, suggested_description, hook_text, outline)
     if supporting_line and all(supporting_line != line for line in outline):
         outline = [supporting_line, *outline[:2]]
+    if resolved_profile == CONTENT_PROFILE_COMBAT_SPORTS and base_outline:
+        transcript_headline = base_outline[0]
+        if len(transcript_headline) <= 20:
+            headline = transcript_headline
     cues = _build_cue_schedule(duration, outline, transcript_segments or [])
     top_label = style_config["top_label"]
 

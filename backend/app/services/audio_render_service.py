@@ -84,16 +84,13 @@ def _probe_audio_duration(audio_path: str | Path) -> float:
 def _preferred_male_voices(text: str) -> list[str]:
     if any("가" <= char <= "힣" for char in text):
         return [
-            "Rocko (한국어(대한민국))",
-            "Reed (한국어(대한민국))",
-            "Grandpa (한국어(대한민국))",
             "Eddy (한국어(대한민국))",
+            "Grandpa (한국어(대한민국))",
         ]
     return [
-        "Daniel",
-        "Grandpa (영어(영국))",
-        "Eddy (영어(영국))",
         "Eddy (영어(미국))",
+        "Daniel",
+        "Eddy (영어(영국))",
     ]
 
 
@@ -112,14 +109,14 @@ def _build_atempo_filter(speed_ratio: float) -> str:
 
 def _synthesize_voice_line(output_path: Path, copy: str, voices: list[str]) -> None:
     for voice in voices:
-        command = ["say", "-v", voice, "-r", "188", "-o", str(output_path.resolve()), copy]
+        command = ["say", "-v", voice, "-r", "176", "-o", str(output_path.resolve()), copy]
         try:
             _run_local_command(command, "Unable to synthesize local voiceover")
             return
         except HTTPException:
             continue
 
-    fallback_command = ["say", "-r", "188", "-o", str(output_path.resolve()), copy]
+    fallback_command = ["say", "-r", "176", "-o", str(output_path.resolve()), copy]
     _run_local_command(fallback_command, "Unable to synthesize local voiceover")
 
 
