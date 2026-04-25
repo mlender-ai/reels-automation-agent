@@ -6,7 +6,7 @@ from app.models.source_video import SourceVideo
 from app.models.transcript import Transcript
 from app.models.workflow_job import WorkflowJob
 from app.services.clip_strategy_service import build_clip_strategy
-from app.services.shorts_story_service import build_story_package_from_clip
+from app.services.shorts_story_service import build_story_package_from_clip, resolve_story_profile
 from app.services.transcription_service import load_transcript_segments
 from app.utils.paths import public_file_url
 
@@ -83,6 +83,13 @@ def serialize_clip(clip: ClipCandidate) -> dict:
             for segment in load_transcript_segments(latest_transcript)
             if segment["end"] > clip.start_time and segment["start"] < clip.end_time
         ]
+    resolved_profile = resolve_story_profile(
+        clip.hook_text,
+        clip.suggested_title,
+        clip.suggested_description,
+        clip.suggested_hashtags,
+        transcript_segments=clip_transcript_segments,
+    )
     strategy = build_clip_strategy(
         hook_text=clip.hook_text,
         suggested_title=clip.suggested_title,
@@ -92,6 +99,7 @@ def serialize_clip(clip: ClipCandidate) -> dict:
         score=clip.score,
         start_time=clip.start_time,
         end_time=clip.end_time,
+        content_profile=resolved_profile,
         source_runtime_seconds=source_runtime_seconds,
     )
     story_package = build_story_package_from_clip(

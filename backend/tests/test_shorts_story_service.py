@@ -32,7 +32,7 @@ class ShortsStoryServiceTests(unittest.TestCase):
         )
 
         self.assertIn("타이슨", package.analysis_headline)
-        self.assertEqual(package.top_label, "마이크 타이슨 브레이크다운")
+        self.assertEqual(package.top_label, "마이크 타이슨 분석")
         self.assertEqual(len(package.analysis_outline), 3)
         self.assertTrue(any("잽" in line or "콤보" in line or "각도" in line for line in package.analysis_outline))
         self.assertEqual(len(package.caption_cues), 3)

@@ -77,17 +77,17 @@ func drawBorder(in rect: NSRect, radius: CGFloat) {
 
 switch style {
 case "micro-title":
-    let chipWidth = min(width - 24, max(280, width * 0.86))
-    let chipHeight = min(height - 10, max(58, height * 0.82))
+    let chipWidth = min(width - 18, max(320, width * 0.9))
+    let chipHeight = min(height - 8, max(74, height * 0.84))
     let chipRect = NSRect(x: (width - chipWidth) / 2, y: (height - chipHeight) / 2, width: chipWidth, height: chipHeight)
     let chip = NSBezierPath(roundedRect: chipRect, xRadius: cornerRadius, yRadius: cornerRadius)
     color(from: backgroundHex, alpha: max(backgroundAlpha, 0.42)).setFill()
     chip.fill()
     drawBorder(in: chipRect.insetBy(dx: 0.5, dy: 0.5), radius: cornerRadius)
 
-    let accentRect = NSRect(x: chipRect.minX + 20, y: chipRect.maxY - 12, width: 64, height: 3)
+    let accentRect = NSRect(x: chipRect.minX + 28, y: chipRect.maxY - 14, width: 86, height: 2)
     let accent = NSBezierPath(roundedRect: accentRect, xRadius: 1.5, yRadius: 1.5)
-    color(from: accentHex, alpha: 0.96).setFill()
+    NSColor(calibratedWhite: 1.0, alpha: 0.82).setFill()
     accent.fill()
 
     let eyebrowParagraph = NSMutableParagraphStyle()
@@ -95,25 +95,25 @@ case "micro-title":
     eyebrowParagraph.lineBreakMode = .byTruncatingTail
     if !eyebrow.isEmpty {
         let eyebrowAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: max(fontSize * 0.38, 12), weight: .semibold),
-            .foregroundColor: color(from: accentHex, alpha: 0.96),
+            .font: NSFont.systemFont(ofSize: max(fontSize * 0.34, 14), weight: .semibold),
+            .foregroundColor: NSColor(calibratedWhite: 1.0, alpha: 0.82),
             .paragraphStyle: eyebrowParagraph,
         ]
-        let eyebrowRect = NSRect(x: chipRect.minX + 18, y: chipRect.midY + 6, width: chipRect.width - 36, height: 16)
+        let eyebrowRect = NSRect(x: chipRect.minX + 18, y: chipRect.midY + 12, width: chipRect.width - 36, height: 18)
         (eyebrow as NSString).draw(in: eyebrowRect, withAttributes: eyebrowAttributes)
     }
 
     let titleParagraph = NSMutableParagraphStyle()
     titleParagraph.alignment = .center
-    titleParagraph.lineBreakMode = .byTruncatingTail
+    titleParagraph.lineBreakMode = .byWordWrapping
     let titleAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: fontSize, weight: .semibold),
+        .font: NSFont.systemFont(ofSize: fontSize, weight: .bold),
         .foregroundColor: color(from: foregroundHex, alpha: 1.0),
         .paragraphStyle: titleParagraph,
     ]
     let titleRect = NSRect(
         x: chipRect.minX + horizontalPadding,
-        y: chipRect.minY + verticalPadding - 6,
+        y: chipRect.minY + verticalPadding - 2,
         width: chipRect.width - horizontalPadding * 2,
         height: chipRect.height - verticalPadding * 2
     )
@@ -204,11 +204,11 @@ case "kinetic-caption":
         let eyebrowParagraph = NSMutableParagraphStyle()
         eyebrowParagraph.alignment = .center
         let eyebrowAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: max(fontSize * 0.34, 14), weight: .semibold),
-            .foregroundColor: color(from: accentHex, alpha: 0.92),
+            .font: NSFont.systemFont(ofSize: max(fontSize * 0.26, 16), weight: .semibold),
+            .foregroundColor: NSColor(calibratedWhite: 1.0, alpha: 0.72),
             .paragraphStyle: eyebrowParagraph,
         ]
-        let eyebrowRect = NSRect(x: 0, y: height - 34, width: width, height: 18)
+        let eyebrowRect = NSRect(x: 0, y: height - 44, width: width, height: 20)
         (eyebrow as NSString).draw(in: eyebrowRect, withAttributes: eyebrowAttributes)
     }
 
@@ -218,8 +218,8 @@ case "kinetic-caption":
     kineticParagraph.lineSpacing = 4
 
     let glowShadow = NSShadow()
-    glowShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.55)
-    glowShadow.shadowBlurRadius = 12
+    glowShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.78)
+    glowShadow.shadowBlurRadius = 18
     glowShadow.shadowOffset = NSSize(width: 0, height: -3)
 
     let kineticAttributes: [NSAttributedString.Key: Any] = [
@@ -228,12 +228,12 @@ case "kinetic-caption":
         .paragraphStyle: kineticParagraph,
         .shadow: glowShadow,
         .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.92),
-        .strokeWidth: -4.2,
+        .strokeWidth: -6.2,
     ]
 
     let kineticRect = NSRect(
         x: horizontalPadding,
-        y: verticalPadding - 4,
+        y: verticalPadding - 8,
         width: width - horizontalPadding * 2,
         height: height - verticalPadding * 2
     )

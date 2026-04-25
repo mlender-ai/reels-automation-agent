@@ -38,51 +38,51 @@ class ClipStoryPackage:
 
 PROFILE_STYLE_CONFIG = {
     CONTENT_PROFILE_COMBAT_SPORTS: {
-        "title_treatment": "상단 마이크로 타이틀 + 레전드/기술 해설 헤드라인",
-        "caption_treatment": "하단 키네틱 자막 + 타이밍별 기술 해설 3줄",
-        "top_label": "LEGEND BREAKDOWN",
+        "title_treatment": "상단 블랙 타이틀 바 + 복싱 해설 헤드라인",
+        "caption_treatment": "하단 대형 자막 + 기술 포인트 3줄",
+        "top_label": "복싱 기술 분석",
         "style_variant": "legend_breakdown",
-        "accent_hex": "E6C56B",
-        "story_angle": "레전드 움직임 분석",
+        "accent_hex": "FFFFFF",
+        "story_angle": "복싱 장면 분석",
     },
     CONTENT_PROFILE_SOCCER: {
-        "title_treatment": "상단 마이크로 타이틀 + 전술 포인트 헤드라인",
-        "caption_treatment": "하단 키네틱 자막 + 전개/전환/마무리 3단 해설",
-        "top_label": "TACTICAL BREAKDOWN",
+        "title_treatment": "상단 블랙 타이틀 바 + 전술 헤드라인",
+        "caption_treatment": "하단 대형 자막 + 전개 포인트 3줄",
+        "top_label": "전술 장면 분석",
         "style_variant": "tactical_breakdown",
-        "accent_hex": "57D9A3",
+        "accent_hex": "FFFFFF",
         "story_angle": "경기 흐름 분석",
     },
     CONTENT_PROFILE_RACING: {
-        "title_treatment": "상단 마이크로 타이틀 + 추월/전략 헤드라인",
-        "caption_treatment": "하단 키네틱 자막 + 라인/브레이킹/결과 3단 해설",
-        "top_label": "RACE BREAKDOWN",
+        "title_treatment": "상단 블랙 타이틀 바 + 레이스 헤드라인",
+        "caption_treatment": "하단 대형 자막 + 레이스 포인트 3줄",
+        "top_label": "레이스 장면 분석",
         "style_variant": "race_breakdown",
-        "accent_hex": "FF8A5B",
+        "accent_hex": "FFFFFF",
         "story_angle": "레이스 전략 분석",
     },
     CONTENT_PROFILE_FIGURE_SKATING: {
-        "title_treatment": "상단 마이크로 타이틀 + 프로그램 해설 헤드라인",
-        "caption_treatment": "하단 키네틱 자막 + 진입/회전/랜딩 3단 해설",
-        "top_label": "PROGRAM BREAKDOWN",
+        "title_treatment": "상단 블랙 타이틀 바 + 프로그램 헤드라인",
+        "caption_treatment": "하단 대형 자막 + 기술 포인트 3줄",
+        "top_label": "프로그램 분석",
         "style_variant": "program_breakdown",
-        "accent_hex": "79D5FF",
+        "accent_hex": "FFFFFF",
         "story_angle": "프로그램 디테일 분석",
     },
     CONTENT_PROFILE_BASEBALL: {
-        "title_treatment": "상단 마이크로 타이틀 + 승부처 헤드라인",
-        "caption_treatment": "하단 키네틱 자막 + 세팅/승부구/결과 3단 해설",
-        "top_label": "PLAY BREAKDOWN",
+        "title_treatment": "상단 블랙 타이틀 바 + 승부처 헤드라인",
+        "caption_treatment": "하단 대형 자막 + 장면 포인트 3줄",
+        "top_label": "승부처 분석",
         "style_variant": "play_breakdown",
-        "accent_hex": "7FD36A",
+        "accent_hex": "FFFFFF",
         "story_angle": "결정적 승부 분석",
     },
     CONTENT_PROFILE_GENERAL: {
-        "title_treatment": "상단 마이크로 타이틀 + 핵심 장면 헤드라인",
-        "caption_treatment": "하단 키네틱 자막 + 장면 해설 3단 구성",
-        "top_label": "STORY CUT",
+        "title_treatment": "상단 블랙 타이틀 바 + 핵심 장면 헤드라인",
+        "caption_treatment": "하단 대형 자막 + 장면 해설 3줄",
+        "top_label": "장면 분석",
         "style_variant": "story_breakdown",
-        "accent_hex": "63D4F5",
+        "accent_hex": "FFFFFF",
         "story_angle": "핵심 장면 분석",
     },
 }
@@ -101,59 +101,64 @@ SUBJECT_STOPWORDS = {
     "콤보",
     "기술",
     "타이밍",
+    "바로",
+    "다시",
+    "계속",
+    "보이는지",
+    "무브",
     "Legend",
     "Breakdown",
     "Shorts",
 }
 
 KOREAN_TRAILING_TOKENS = {"왜", "어떻게", "레전드", "전설", "이유", "분석", "움직임", "장면", "포인트"}
-KOREAN_TRAILING_PARTICLES = ("이", "가", "은", "는", "을", "를", "의")
+KOREAN_TRAILING_PARTICLES = ("이", "가", "은", "는", "을", "를", "의", "로", "으로")
 
 COMBAT_TECHNIQUE_LIBRARY = [
-    ({"peekaboo", "peek-a-boo", "피카부"}, "피카부 스텝으로 리듬을 먼저 흔든다"),
-    ({"jab", "잽"}, "잽으로 시선과 가드를 먼저 묶는다"),
-    ({"feint", "페인트"}, "페인트로 수비 반응을 먼저 꺼낸다"),
-    ({"distance", "거리"}, "거리 싸움부터 주도권을 잡는다"),
-    ({"angle", "각도", "pivot", "피벗"}, "피벗과 각도 전환으로 타점을 연다"),
-    ({"slip", "roll", "weave", "헤드무브먼트"}, "헤드무브먼트로 카운터 타이밍을 만든다"),
-    ({"hook", "훅"}, "측면 각도에서 훅을 짧게 연결한다"),
-    ({"uppercut", "어퍼컷"}, "상대 중심이 뜨는 순간 어퍼컷을 꽂는다"),
-    ({"bodyshot", "body shot", "바디샷"}, "바디샷으로 리듬을 한 번 끊어낸다"),
-    ({"counter", "카운터"}, "상대가 반응하는 찰나에 카운터를 맞춘다"),
-    ({"combo", "combination", "콤보", "연타"}, "열린 틈에 콤보를 끊기지 않게 연결한다"),
-    ({"finish", "knockout", "ko", "피니시", "다운"}, "마지막 연타로 흐름을 완전히 끝낸다"),
+    ({"peekaboo", "peek-a-boo", "피카부"}, "피카부 스텝으로 리듬 먼저 먹음"),
+    ({"jab", "잽"}, "잽으로 시선 먼저 묶음"),
+    ({"feint", "페인트"}, "페인트로 반응 먼저 빼냄"),
+    ({"distance", "거리"}, "거리부터 이미 주도권 잡음"),
+    ({"angle", "각도", "pivot", "피벗"}, "피벗으로 각도 열어버림"),
+    ({"slip", "roll", "weave", "헤드무브먼트"}, "헤드무브로 카운터 타이밍 만듦"),
+    ({"hook", "훅"}, "짧은 훅이 옆각에서 바로 들어감"),
+    ({"uppercut", "어퍼컷"}, "중심 뜨는 순간 어퍼컷 연결"),
+    ({"bodyshot", "body shot", "바디샷"}, "바디샷으로 리듬 한 번 끊음"),
+    ({"counter", "카운터"}, "반응 나오는 순간 카운터 꽂힘"),
+    ({"combo", "combination", "콤보", "연타"}, "빈틈 열리자 콤보 바로 들어감"),
+    ({"finish", "knockout", "ko", "피니시", "다운"}, "마지막 연타로 흐름 끝냄"),
 ]
 
 PROFILE_FALLBACK_OUTLINES = {
     CONTENT_PROFILE_COMBAT_SPORTS: [
-        "초반 움직임에서 먼저 리듬을 장악한다",
-        "상대 반응을 끌어낸 뒤 콤보 진입 타이밍을 만든다",
-        "마지막 연타로 흐름을 완전히 끊어낸다",
+        "초반 리듬부터 먼저 먹음",
+        "반응 끌어낸 뒤 콤보 각 만듦",
+        "마지막 연타로 흐름 끝냄",
     ],
     CONTENT_PROFILE_SOCCER: [
-        "첫 움직임에서 공간과 시선을 먼저 묶는다",
-        "전환 구간에서 패턴 하나로 수비 라인을 흔든다",
-        "마지막 선택이 결과를 바꾸는 장면으로 이어진다",
+        "첫 움직임에서 공간 먼저 엶",
+        "전환 구간 패턴 하나로 수비 흔듦",
+        "마지막 선택이 결과까지 바꿈",
     ],
     CONTENT_PROFILE_RACING: [
-        "초반 라인 선택으로 추월 각을 미리 만든다",
-        "브레이킹 포인트에서 승부를 거는 타이밍이 나온다",
-        "출구 가속을 살려 결과를 확정짓는다",
+        "라인 선택부터 이미 승부 봄",
+        "브레이킹 포인트에서 추월 각 만듦",
+        "출구 가속으로 결과 확정",
     ],
     CONTENT_PROFILE_FIGURE_SKATING: [
-        "진입 자세에서 프로그램 리듬을 먼저 잡는다",
-        "회전 구간에서 기술 완성도가 갈린다",
-        "랜딩과 마무리 흐름이 인상을 결정한다",
+        "진입부터 프로그램 리듬 잡힘",
+        "회전 구간에서 완성도 갈림",
+        "랜딩이 인상까지 정리함",
     ],
     CONTENT_PROFILE_BASEBALL: [
-        "카운트와 세팅부터 승부 흐름을 만든다",
-        "결정구가 들어가는 순간 타이밍이 무너진다",
-        "마지막 결과가 경기 흐름을 완전히 바꾼다",
+        "카운트와 세팅부터 흐름 만듦",
+        "결정구 들어가며 타이밍 무너짐",
+        "마지막 결과로 분위기 뒤집힘",
     ],
     CONTENT_PROFILE_GENERAL: [
-        "초반 장면이 시청자 시선을 먼저 붙잡는다",
-        "중간 포인트에서 흐름이 분명하게 바뀐다",
-        "마지막 장면이 이 클립의 이유를 설명한다",
+        "첫 장면에서 시선 바로 꽂힘",
+        "중간 지점에서 흐름 확 바뀜",
+        "마지막 장면이 이유를 완성함",
     ],
 }
 
@@ -176,6 +181,8 @@ def _extract_subject(text: str) -> str | None:
         lowered = candidate.lower()
         if len(collapsed) < 3:
             continue
+        if " " not in candidate and all("가" <= char <= "힣" for char in collapsed):
+            continue
         if candidate in SUBJECT_STOPWORDS or collapsed in SUBJECT_STOPWORDS:
             continue
         if lowered in {word.lower() for word in SUBJECT_STOPWORDS}:
@@ -189,6 +196,17 @@ def _extract_subject(text: str) -> str | None:
 def _contains_any(text: str, terms: set[str]) -> bool:
     lowered = text.lower()
     return any(term in lowered for term in terms)
+
+
+def _should_use_subject(subject: str | None) -> bool:
+    if not subject:
+        return False
+    if re.search(r"[A-Z][a-z]+", subject):
+        return True
+    parts = [part for part in subject.split() if part]
+    if len(parts) != 2:
+        return False
+    return all(2 <= len(part) <= 5 for part in parts)
 
 
 def _build_combat_outline(text: str) -> list[str]:
@@ -215,22 +233,23 @@ def _build_profile_outline(profile: str, text: str) -> list[str]:
 
 
 def _resolve_headline(subject: str | None, profile: str, recommended_format: str, text: str) -> str:
-    subject_prefix = f"{subject} " if subject else ""
+    resolved_subject = subject if _should_use_subject(subject) else None
+    subject_prefix = f"{resolved_subject} " if resolved_subject else ""
     if profile == CONTENT_PROFILE_COMBAT_SPORTS:
         if "레전드" in text or recommended_format in {FORMAT_LABELS["legend"], FORMAT_LABELS["finish"]}:
-            return f"{subject_prefix}왜 아직도 레전드로 불리는지".strip()
+            return f"{subject_prefix}전성기 장면 다시 보는 이유".strip()
         if recommended_format in {FORMAT_LABELS["analysis"], FORMAT_LABELS["coach_note"]}:
-            return f"{subject_prefix}움직임이 특별한 이유".strip()
-        return f"{subject_prefix}콤보가 통하는 디테일".strip()
+            return f"{subject_prefix}움직임이 유독 무서운 이유".strip()
+        return f"{subject_prefix}콤보가 잘 들어가는 이유".strip()
     if profile == CONTENT_PROFILE_SOCCER:
-        return f"{subject_prefix}이 장면이 흐름을 바꾼 이유".strip()
+        return f"{subject_prefix}이 장면이 흐름 바꾼 이유".strip()
     if profile == CONTENT_PROFILE_RACING:
-        return f"{subject_prefix}이 랩이 갈린 진짜 이유".strip()
+        return f"{subject_prefix}이 랩에서 갈린 이유".strip()
     if profile == CONTENT_PROFILE_FIGURE_SKATING:
         return f"{subject_prefix}이 프로그램이 살아나는 포인트".strip()
     if profile == CONTENT_PROFILE_BASEBALL:
         return f"{subject_prefix}이 승부가 갈린 포인트".strip()
-    return f"{subject_prefix}이 장면을 다시 보게 되는 이유".strip()
+    return f"{subject_prefix}왜 이 장면만 계속 보게 되는지".strip()
 
 
 def _build_cue_schedule(duration: float, outline: list[str], transcript_segments: list[dict]) -> list[StoryCue]:
@@ -257,9 +276,37 @@ def _build_cue_schedule(duration: float, outline: list[str], transcript_segments
             anchors.append((start, end))
 
     cues: list[StoryCue] = []
-    for copy, (start, end) in zip(outline, anchors, strict=False):
-        cues.append(StoryCue(start=round(start, 2), end=round(max(start + 1.9, end), 2), text=copy))
+    gap = 0.18
+    minimum_span = 2.15
+    previous_end = 0.35
+    for index, (copy, (start, end)) in enumerate(zip(outline, anchors, strict=False)):
+        safe_start = max(start, previous_end + gap)
+        safe_end = max(safe_start + minimum_span, end)
+        if index < len(anchors) - 1:
+            next_anchor_start = anchors[index + 1][0]
+            safe_end = min(safe_end, max(safe_start + 1.6, next_anchor_start - gap))
+        safe_end = min(duration - 0.1, safe_end)
+        if safe_end <= safe_start:
+            safe_end = min(duration - 0.1, safe_start + 1.8)
+        cues.append(StoryCue(start=round(safe_start, 2), end=round(safe_end, 2), text=copy))
+        previous_end = safe_end
     return cues
+
+
+def resolve_story_profile(*parts: str, transcript_segments: list[dict] | None = None, explicit_profile: str | None = None) -> str:
+    if explicit_profile:
+        return explicit_profile
+    base_text = _normalized_text(*parts)
+    transcript_text = " ".join(segment.get("text", "").strip() for segment in (transcript_segments or []) if segment.get("text"))
+    combined = _normalized_text(base_text, transcript_text)
+    transcript_profile = detect_content_profile_from_text(transcript_text) if transcript_text else CONTENT_PROFILE_GENERAL
+    combined_profile = detect_content_profile_from_text(combined)
+    base_profile = detect_content_profile_from_text(base_text)
+    if transcript_profile != CONTENT_PROFILE_GENERAL:
+        return transcript_profile
+    if combined_profile != CONTENT_PROFILE_GENERAL:
+        return combined_profile
+    return base_profile
 
 
 def build_clip_story_package(
@@ -277,7 +324,14 @@ def build_clip_story_package(
     transcript_segments: list[dict] | None = None,
 ) -> ClipStoryPackage:
     normalized = _normalized_text(hook_text, suggested_title, suggested_description, suggested_hashtags)
-    resolved_profile = content_profile or detect_content_profile_from_text(normalized)
+    resolved_profile = resolve_story_profile(
+        hook_text,
+        suggested_title,
+        suggested_description,
+        suggested_hashtags,
+        transcript_segments=transcript_segments,
+        explicit_profile=content_profile,
+    )
     strategy = build_clip_strategy(
         hook_text=hook_text,
         suggested_title=suggested_title,
@@ -296,8 +350,8 @@ def build_clip_story_package(
     outline = _build_profile_outline(resolved_profile, normalized)
     cues = _build_cue_schedule(duration, outline, transcript_segments or [])
     top_label = style_config["top_label"]
-    if subject and resolved_profile == CONTENT_PROFILE_COMBAT_SPORTS:
-        top_label = f"{subject.upper()} BREAKDOWN" if re.search(r"[A-Za-z]", subject) else f"{subject} 브레이크다운"
+    if _should_use_subject(subject) and resolved_profile == CONTENT_PROFILE_COMBAT_SPORTS:
+        top_label = f"{subject} 분석"
 
     return ClipStoryPackage(
         story_angle=style_config["story_angle"],
@@ -322,7 +376,13 @@ def build_story_package_from_clip(clip, transcript_segments: list[dict] | None =
         score=clip.score,
         start_time=clip.start_time,
         end_time=clip.end_time,
-        content_profile=detect_content_profile_from_text(_normalized_text(clip.hook_text, clip.suggested_title, clip.suggested_description, clip.suggested_hashtags)),
+        content_profile=resolve_story_profile(
+            clip.hook_text,
+            clip.suggested_title,
+            clip.suggested_description,
+            clip.suggested_hashtags,
+            transcript_segments=transcript_segments,
+        ),
         source_runtime_seconds=source_runtime_seconds,
         transcript_segments=transcript_segments,
     )
