@@ -55,10 +55,14 @@ export function ClipReviewPage() {
   });
 
   const previewUrl = useMemo(() => {
-    if (clip?.latest_export?.output_url) return resolveMediaUrl(clip.latest_export.output_url);
+    if (clip?.latest_export?.output_url) {
+      const baseUrl = resolveMediaUrl(clip.latest_export.output_url);
+      const version = clip.latest_export.updated_at ?? clip.latest_export.created_at;
+      return version ? `${baseUrl}?v=${encodeURIComponent(version)}` : baseUrl;
+    }
     if (project?.source_video?.file_url) return resolveMediaUrl(project.source_video.file_url);
     return "";
-  }, [clip?.latest_export?.output_url, project?.source_video?.file_url]);
+  }, [clip?.latest_export?.created_at, clip?.latest_export?.output_url, clip?.latest_export?.updated_at, project?.source_video?.file_url]);
 
   const validationError = useMemo(() => {
     return validateClipWindow(form.start_time, form.end_time, project?.source_video?.duration_seconds) ?? "";
@@ -631,6 +635,18 @@ export function ClipReviewPage() {
                   <RotateCcw className="h-4 w-4" />
                   되돌리기
                 </button>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">영상 적용 텍스트</p>
+              <div className="mt-3 rounded-2xl bg-black/25 p-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">고정 타이틀</p>
+                <p className="mt-2 text-base font-semibold text-white">{form.suggested_title || clip.analysis_headline || "제목 없음"}</p>
+              </div>
+              <div className="mt-3 rounded-2xl bg-black/25 p-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">자막 톤</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{form.suggested_description || clip.hook_text || "자막 문장이 아직 없습니다."}</p>
               </div>
             </div>
 

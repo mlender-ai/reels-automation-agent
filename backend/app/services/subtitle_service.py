@@ -122,6 +122,16 @@ def build_subtitle_overlay_cues(clip: ClipCandidate, transcript: Transcript) -> 
 
     cues: list[dict] = []
     previous_end = 0.0
+
+    description_text = " ".join((clip.suggested_description or "").split())
+    if description_text:
+        opening_copy = description_text.split(".")[0].strip()
+        if opening_copy:
+            wrapped_opening = _wrap_text(opening_copy, max_line_length=rules["line_length"])
+            if wrapped_opening:
+                cues.append({"start": 0.8, "end": min(max(3.2, clip.duration * 0.28), clip.duration - 0.6), "text": wrapped_opening})
+                previous_end = cues[-1]["end"]
+
     for segment in merged_segments:
         wrapped_text = _wrap_text(segment["text"], max_line_length=rules["line_length"])
         if not wrapped_text:
