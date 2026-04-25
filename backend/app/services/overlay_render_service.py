@@ -41,6 +41,21 @@ class RenderedOverlayAsset:
     end: float | None = None
 
 
+def _format_title_display(text: str) -> str:
+    normalized = " ".join((text or "").split()).strip()
+    if not normalized or "\n" in normalized:
+        return normalized
+    parts = normalized.split(" ")
+    if len(parts) < 2 or len(normalized) <= 10:
+        return normalized
+    split_index = max(1, len(parts) // 2)
+    first = " ".join(parts[:split_index]).strip()
+    second = " ".join(parts[split_index:]).strip()
+    if first and second:
+        return f"{first}\n{second}"
+    return normalized
+
+
 def _render_card(output_path: Path, card: OverlayCardSpec) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
@@ -79,32 +94,32 @@ def build_story_overlay_assets(
     rendered_assets: list[RenderedOverlayAsset] = []
 
     title_card = OverlayCardSpec(
-        text=f"{story_package.analysis_headline}||{story_package.supporting_line}",
-        width=960,
-        height=308,
-        font_size=66,
-        horizontal_padding=40,
-        vertical_padding=28,
+        text=_format_title_display(story_package.analysis_headline),
+        width=1080,
+        height=244,
+        font_size=88,
+        horizontal_padding=90,
+        vertical_padding=34,
         background_hex="000000",
-        background_alpha=0.94,
+        background_alpha=1.0,
         foreground_hex="FFFFFF",
         corner_radius=0,
         style="shorts-clean-hero",
         eyebrow="",
-        accent_hex="47E8FF",
+        accent_hex="FFFFFF",
     )
     title_path = overlay_dir / f"clip-{clip_id}-story-title.png"
     _render_card(title_path, title_card)
     rendered_assets.append(RenderedOverlayAsset(path=title_path, x="(W-w)/2", y="0", start=0.0, end=None))
 
-    for index, cue in enumerate((subtitle_cues or [])[:4], start=1):
+    for index, cue in enumerate((subtitle_cues or [])[:5], start=1):
         caption_card = OverlayCardSpec(
             text=cue["text"],
-            width=900,
-            height=190,
-            font_size=50,
-            horizontal_padding=36,
-            vertical_padding=24,
+            width=960,
+            height=220,
+            font_size=68,
+            horizontal_padding=40,
+            vertical_padding=18,
             background_hex="000000",
             background_alpha=0.0,
             foreground_hex="FFFFFF",
@@ -119,7 +134,7 @@ def build_story_overlay_assets(
             RenderedOverlayAsset(
                 path=caption_path,
                 x="(W-w)/2",
-                y="H-h-150",
+                y="H-h-300",
                 start=float(cue["start"]),
                 end=float(cue["end"]),
             )

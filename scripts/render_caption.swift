@@ -68,6 +68,38 @@ shadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.4)
 shadow.shadowBlurRadius = 8
 shadow.shadowOffset = NSSize(width: 0, height: -2)
 
+func fittedFontSize(
+    for text: String,
+    in rect: NSRect,
+    baseSize: CGFloat,
+    minimumSize: CGFloat,
+    attributesBuilder: (CGFloat) -> [NSAttributedString.Key: Any]
+) -> CGFloat {
+    var current = baseSize
+    while current >= minimumSize {
+        let bounds = (text as NSString).boundingRect(
+            with: NSSize(width: rect.width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attributesBuilder(current)
+        )
+        if bounds.height <= rect.height * 1.02 && bounds.width <= rect.width * 1.02 {
+            return current
+        }
+        current -= 2
+    }
+    return minimumSize
+}
+
+func centeredRect(for text: String, in rect: NSRect, attributes: [NSAttributedString.Key: Any]) -> NSRect {
+    let bounds = (text as NSString).boundingRect(
+        with: NSSize(width: rect.width, height: .greatestFiniteMagnitude),
+        options: [.usesLineFragmentOrigin, .usesFontLeading],
+        attributes: attributes
+    ).integral
+    let originY = rect.minY + max(0, (rect.height - bounds.height) / 2.0)
+    return NSRect(x: rect.minX, y: originY, width: rect.width, height: max(bounds.height, rect.height))
+}
+
 func drawBorder(in rect: NSRect, radius: CGFloat) {
     let border = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
     border.lineWidth = 1
@@ -82,67 +114,78 @@ case "shorts-clean-hero":
     color(from: backgroundHex, alpha: backgroundAlpha).setFill()
     background.fill()
 
-    let parts = text.components(separatedBy: "||")
-    let primary = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? text
-    let secondary = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
-
     let titleParagraph = NSMutableParagraphStyle()
     titleParagraph.alignment = .center
     titleParagraph.lineBreakMode = .byWordWrapping
-    titleParagraph.lineSpacing = -3
+    titleParagraph.lineSpacing = -1
 
     let heavyShadow = NSShadow()
     heavyShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.95)
-    heavyShadow.shadowBlurRadius = 12
+    heavyShadow.shadowBlurRadius = 10
     heavyShadow.shadowOffset = NSSize(width: 0, height: -3)
 
-    let primaryAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+    let titleRect = NSRect(x: horizontalPadding, y: 30, width: width - horizontalPadding * 2, height: height - 60)
+    let resolvedTitleSize = fittedFontSize(
+        for: text,
+        in: titleRect,
+        baseSize: fontSize,
+        minimumSize: 54
+    ) { size in
+        [
+            .font: NSFont.systemFont(ofSize: size, weight: .black),
+            .foregroundColor: NSColor.white,
+            .paragraphStyle: titleParagraph,
+            .shadow: heavyShadow,
+            .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.96),
+            .strokeWidth: -4.0,
+        ]
+    }
+    let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: resolvedTitleSize, weight: .black),
         .foregroundColor: NSColor.white,
         .paragraphStyle: titleParagraph,
         .shadow: heavyShadow,
+        .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.96),
+        .strokeWidth: -4.0,
     ]
-    (primary as NSString).draw(
-        in: NSRect(x: horizontalPadding, y: 132, width: width - horizontalPadding * 2, height: 76),
-        withAttributes: primaryAttributes
-    )
-
-    if !secondary.isEmpty {
-        let secondaryAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: fontSize - 2, weight: .black),
-            .foregroundColor: color(from: accentHex, alpha: 1.0),
-            .paragraphStyle: titleParagraph,
-            .shadow: heavyShadow,
-        ]
-        (secondary as NSString).draw(
-            in: NSRect(x: horizontalPadding, y: 56, width: width - horizontalPadding * 2, height: 76),
-            withAttributes: secondaryAttributes
-        )
-    }
+    (text as NSString).draw(in: centeredRect(for: text, in: titleRect, attributes: titleAttributes), withAttributes: titleAttributes)
 
 case "shorts-clean-caption":
     let paragraphStyle = NSMutableParagraphStyle()
     paragraphStyle.alignment = .center
     paragraphStyle.lineBreakMode = .byWordWrapping
-    paragraphStyle.lineSpacing = 2
+    paragraphStyle.lineSpacing = 4
 
     let subtitleShadow = NSShadow()
     subtitleShadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.98)
-    subtitleShadow.shadowBlurRadius = 18
+    subtitleShadow.shadowBlurRadius = 14
     subtitleShadow.shadowOffset = NSSize(width: 0, height: -4)
 
+    let subtitleRect = NSRect(x: horizontalPadding, y: verticalPadding, width: width - horizontalPadding * 2, height: height - verticalPadding * 2)
+    let resolvedSubtitleSize = fittedFontSize(
+        for: text,
+        in: subtitleRect,
+        baseSize: fontSize,
+        minimumSize: 42
+    ) { size in
+        [
+            .font: NSFont.systemFont(ofSize: size, weight: .black),
+            .foregroundColor: NSColor.white,
+            .paragraphStyle: paragraphStyle,
+            .shadow: subtitleShadow,
+            .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.98),
+            .strokeWidth: -6.0,
+        ]
+    }
     let subtitleAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: fontSize, weight: .black),
+        .font: NSFont.systemFont(ofSize: resolvedSubtitleSize, weight: .black),
         .foregroundColor: NSColor.white,
         .paragraphStyle: paragraphStyle,
         .shadow: subtitleShadow,
         .strokeColor: NSColor(calibratedWhite: 0.0, alpha: 0.98),
-        .strokeWidth: -5.0,
+        .strokeWidth: -6.0,
     ]
-    (text as NSString).draw(
-        in: NSRect(x: horizontalPadding, y: verticalPadding, width: width - horizontalPadding * 2, height: height - verticalPadding * 2),
-        withAttributes: subtitleAttributes
-    )
+    (text as NSString).draw(in: centeredRect(for: text, in: subtitleRect, attributes: subtitleAttributes), withAttributes: subtitleAttributes)
 
 case "shorts-punch-title":
     let cardRect = NSRect(x: 0, y: 0, width: width, height: height)

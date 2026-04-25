@@ -19,7 +19,13 @@ from app.services.audio_render_service import (
 from app.services.ffmpeg_service import export_vertical_clip, extract_thumbnail
 from app.services.overlay_render_service import build_story_overlay_assets
 from app.services.shorts_story_service import build_story_package_from_clip
-from app.services.subtitle_service import build_subtitle_style, build_subtitle_overlay_cues, extract_clip_transcript_segments, write_clip_srt
+from app.services.subtitle_service import (
+    build_story_overlay_cues,
+    build_subtitle_style,
+    extract_clip_transcript_segments,
+    write_clip_srt,
+    write_story_srt,
+)
 from app.services.validation_service import validate_clip_metadata, validate_clip_window, validate_generated_subtitle_file
 from app.utils.paths import build_export_basename, project_exports_dir, resolve_data_path, to_relative_data_path
 
@@ -77,7 +83,6 @@ def export_clip(
         clip.duration = validate_clip_window(clip.start_time, clip.end_time, max_source_duration=source_duration_seconds)
         validate_clip_metadata(clip.suggested_title, clip.suggested_description, clip.suggested_hashtags, clip.subtitle_preset)
         subtitle_file, subtitle_relative_path = write_clip_srt(project.id, clip, transcript, base_name=base_name)
-        validate_generated_subtitle_file(subtitle_file)
         overlay_assets = []
         narration_file = None
         background_music_file = None
@@ -89,15 +94,25 @@ def export_clip(
                 transcript_segments=clip_transcript_segments,
                 source_runtime_seconds=source_duration_seconds,
             )
+            story_cues = build_story_overlay_cues(clip, story_package)
+            subtitle_file, subtitle_relative_path = write_story_srt(project.id, clip, story_package, base_name=base_name)
+            validate_generated_subtitle_file(subtitle_file)
             overlay_assets = build_story_overlay_assets(
                 project.id,
                 clip.id,
                 base_name,
                 story_package,
-                subtitle_cues=build_subtitle_overlay_cues(clip, transcript),
+                subtitle_cues=story_cues,
             )
             voiceover_copy = build_voiceover_copy(clip, story_package)
-            narration_file = render_voiceover_audio(project.id, clip.id, base_name, voiceover_copy)
+            narration_file = render_voiceover_audio(
+                project.id,
+                clip.id,
+                base_name,
+                voiceover_copy,
+                subtitle_cues=story_cues,
+                clip_duration=clip.duration,
+            )
             background_music_file = render_background_music(project.id, clip.id, base_name, clip.duration)
             mixed_audio_file = render_mixed_short_audio(
                 project.id,
@@ -111,6 +126,13 @@ def export_clip(
             )
         except Exception as exc:  # pragma: no cover - best effort styling fallback
             logger.warning("Story overlay generation skipped. project_id=%s clip_id=%s detail=%s", project.id, clip.id, exc)
+            validate_generated_subtitle_file(subtitle_file)
+            overlay_assets = []
+            narration_file = None
+            background_music_file = None
+            mixed_audio_file = None
+        else:
+            validate_generated_subtitle_file(subtitle_file)
         export_vertical_clip(
             input_path=resolve_data_path(source_path),
             output_path=output_file,

@@ -132,34 +132,34 @@ COMBAT_TECHNIQUE_LIBRARY = [
 
 PROFILE_FALLBACK_OUTLINES = {
     CONTENT_PROFILE_COMBAT_SPORTS: [
-        "초반 리듬부터 먼저 먹음",
-        "반응 끌어낸 뒤 콤보 각 만듦",
-        "마지막 연타로 흐름 끝냄",
+        "초반 리듬부터 먹음",
+        "반응 나오자 바로 들어감",
+        "마지막 연타로 끝냄",
     ],
     CONTENT_PROFILE_SOCCER: [
-        "첫 움직임에서 공간 먼저 엶",
-        "전환 구간 패턴 하나로 수비 흔듦",
-        "마지막 선택이 결과까지 바꿈",
+        "첫 움직임에서 공간 열림",
+        "전환 한 번에 수비 흔들림",
+        "마지막 선택이 결과 바꿈",
     ],
     CONTENT_PROFILE_RACING: [
-        "라인 선택부터 이미 승부 봄",
-        "브레이킹 포인트에서 추월 각 만듦",
+        "라인 선택부터 승부 봄",
+        "브레이킹에서 추월 각 만듦",
         "출구 가속으로 결과 확정",
     ],
     CONTENT_PROFILE_FIGURE_SKATING: [
-        "진입부터 프로그램 리듬 잡힘",
+        "진입부터 리듬 잡힘",
         "회전 구간에서 완성도 갈림",
-        "랜딩이 인상까지 정리함",
+        "랜딩 하나로 인상 정리됨",
     ],
     CONTENT_PROFILE_BASEBALL: [
-        "카운트와 세팅부터 흐름 만듦",
+        "카운트부터 흐름 만듦",
         "결정구 들어가며 타이밍 무너짐",
         "마지막 결과로 분위기 뒤집힘",
     ],
     CONTENT_PROFILE_GENERAL: [
-        "첫 장면에서 시선 바로 꽂힘",
-        "중간 지점에서 흐름 확 바뀜",
-        "마지막 장면이 이유를 완성함",
+        "첫 장면부터 눈길 잡음",
+        "중간부터 흐름 확 바뀜",
+        "마지막 장면에서 이유 나옴",
     ],
 }
 
@@ -241,7 +241,6 @@ def _compact_korean_copy(text: str, fallback: str) -> str:
     replacements = [
         ("장면입니다", ""),
         ("장면이다", ""),
-        ("장면", ""),
         ("이유입니다", "이유"),
         ("입니다", ""),
         ("이다", ""),
@@ -285,6 +284,12 @@ def _resolve_supporting_line(profile: str, suggested_description: str, hook_text
     fallback = outline[0] if outline else "지금 분위기 완전히 바뀜!"
     base = suggested_description or hook_text or fallback
     compact = _compact_korean_copy(base, fallback)
+    compact = compact.replace("완성함!", "이유 나옴!").replace("완성함", "이유 나옴")
+    compact = compact.replace("선언!", "한마디!").replace("선언", "한마디")
+    compact = compact.replace("절대 물러서지 않는", "안 물러나는")
+    compact = compact.replace("절대 안", "안")
+    compact = compact.replace("원하는 장면이 나올 때까지", "원하는 장면 나올 때까지")
+    compact = compact.replace("절대 물러서지", "절대 안 멈춤")
     if profile == CONTENT_PROFILE_COMBAT_SPORTS and len(compact) < 10:
         return f"{compact.rstrip('!?')} 바로 터짐!"
     return compact
@@ -316,6 +321,7 @@ def _build_cue_schedule(duration: float, outline: list[str], transcript_segments
     cues: list[StoryCue] = []
     gap = 0.18
     minimum_span = 2.15
+    maximum_span = 4.2
     previous_end = 0.35
     for index, (copy, (start, end)) in enumerate(zip(outline, anchors, strict=False)):
         safe_start = max(start, previous_end + gap)
@@ -323,6 +329,7 @@ def _build_cue_schedule(duration: float, outline: list[str], transcript_segments
         if index < len(anchors) - 1:
             next_anchor_start = anchors[index + 1][0]
             safe_end = min(safe_end, max(safe_start + 1.6, next_anchor_start - gap))
+        safe_end = min(safe_end, safe_start + maximum_span)
         safe_end = min(duration - 0.1, safe_end)
         if safe_end <= safe_start:
             safe_end = min(duration - 0.1, safe_start + 1.8)
@@ -391,9 +398,11 @@ def build_clip_story_package(
     else:
         headline = _resolve_headline(subject, resolved_profile, strategy.recommended_format, normalized)
     outline = _build_profile_outline(resolved_profile, normalized)
+    supporting_line = _resolve_supporting_line(resolved_profile, suggested_description, hook_text, outline)
+    if supporting_line and all(supporting_line != line for line in outline):
+        outline = [supporting_line, *outline[:2]]
     cues = _build_cue_schedule(duration, outline, transcript_segments or [])
     top_label = style_config["top_label"]
-    supporting_line = _resolve_supporting_line(resolved_profile, suggested_description, hook_text, outline)
 
     return ClipStoryPackage(
         story_angle=style_config["story_angle"],
