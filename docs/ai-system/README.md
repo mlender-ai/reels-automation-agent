@@ -57,6 +57,44 @@ The system is organized into four layers:
 4. `create_auto_pr.py` creates a branch, commit, and draft PR only when policy allows it.
 5. A human reviews the PR and decides whether it should be merged.
 
+## Current Repo Reality
+
+At the current stage of development, another agent should assume:
+
+- the product is already beyond scaffold stage
+- the local app path is the primary working path
+- YouTube URL ingest exists and is part of normal product flow
+- the current UX focus is on short-form export quality, not just raw functionality
+- GitHub AI automation is live, but product quality work still needs human-guided iteration
+
+Important product areas already in motion:
+
+- local upload + YouTube ingest
+- transcript + candidate generation
+- clip review and export
+- overlay title/subtitle generation
+- local TTS + BGM audio mix
+- multi-sport content profiling
+
+Important open quality areas:
+
+- short-form copy tone
+- subtitle pacing and segmentation
+- channel/reference-specific style presets
+- stronger alignment between source clip meaning and generated copy
+
+## Agent Pickup Order
+
+When a new agent joins this repo, it should usually:
+
+1. read `README.md`
+2. read `docs/ai-system/CURRENT_STATE.md`
+3. inspect the latest changed files in `backend/app/services/`
+4. verify local backend/frontend are runnable
+5. test one real project flow before making product changes
+
+This reduces the chance of working from stale assumptions.
+
 ## Safety Model
 
 - no auto merge by default

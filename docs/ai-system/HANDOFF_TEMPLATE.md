@@ -2,6 +2,11 @@
 
 Use this template when handing the repository to a new session, developer, or AI agent.
 
+Before writing a new handoff, also read:
+
+- `docs/ai-system/CURRENT_STATE.md`
+- `README.md`
+
 ```md
 # Handoff
 
@@ -33,6 +38,16 @@ Use this template when handing the repository to a new session, developer, or AI
 - backend:
 - frontend:
 - automation:
+
+## Latest Verified URLs
+- frontend:
+- backend health:
+- sample project:
+- sample clip review:
+
+## Last Known Good Commit
+- sha:
+- message:
 ```
 
 Keep handoffs concrete. The goal is to reduce rediscovery time for whoever picks up the repo next.

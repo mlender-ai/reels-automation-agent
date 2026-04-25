@@ -27,6 +27,9 @@ Use to stabilize the product and tighten quality:
 - UI/UX cleanup
 - service boundary hardening
 - README and runbook alignment
+- export title / subtitle / TTS quality improvements
+- candidate review workflow polish
+- YouTube ingest hardening
 
 ### 3. `scale_system`
 
@@ -36,6 +39,8 @@ Use to extend the system without breaking local-first constraints:
 - smarter scoring and metadata generation
 - stronger job orchestration
 - real platform integration prep
+- multi-sport format specialization
+- batch export and candidate comparison flows
 
 ### 4. `self_improve_repo`
 
@@ -45,6 +50,18 @@ Use to improve the repository itself:
 - patch bundle safety
 - PR automation guardrails
 - workflow observability
+
+## Recommended Starting Point For New Sessions
+
+If a new session is picking up active work today, the default reading order should be:
+
+1. `README.md`
+2. `docs/ai-system/CURRENT_STATE.md`
+3. `docs/ai-system/HANDOFF_TEMPLATE.md`
+4. relevant current product services under `backend/app/services/`
+
+If the task is product quality work, start with `improve_system`.
+If the task is repo automation work, start with `self_improve_repo`.
 
 ## Automation Prompt Order
 

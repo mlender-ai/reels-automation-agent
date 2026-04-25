@@ -15,6 +15,29 @@ The automation system continuously reviews the repository, drafts issues, propos
 
 Version one stays local-first. It supports direct local uploads and user-supplied YouTube watch or Shorts URLs that are ingested into the local project workspace before processing.
 
+## Current State Snapshot
+
+The repository is no longer just a scaffold. The current working baseline includes:
+
+- local upload and YouTube URL ingest into project source folders
+- transcript extraction with `faster-whisper`
+- 3 to 5 short-form candidate generation with score and metadata
+- candidate review, approve / reject, and export
+- background job progress polling for transcript, clip generation, export, and publish
+- mock publish queue
+- AI org automation on GitHub Actions
+- current short-form styling pass with:
+  - fixed top title
+  - white subtitle overlays
+  - local male-voice TTS
+  - low-volume BGM mix
+
+The active continuation docs for another agent are:
+
+- `docs/ai-system/CURRENT_STATE.md`
+- `docs/ai-system/HANDOFF_TEMPLATE.md`
+- `docs/ai-system/MASTER_PROMPTS.md`
+
 ## Current Goal
 
 This repository is the basecamp for two tracks that evolve together:
@@ -35,6 +58,8 @@ This repository is the basecamp for two tracks that evolve together:
 - vertical `1080x1920` export with burned-in subtitles
 - mock publish queue for YouTube Shorts / Instagram Reels / TikTok adapter structure
 - combat-sports oriented heuristic scoring and metadata generation for MMA, boxing, kickboxing, and Muay Thai clips
+- multi-sport profile modeling for combat sports, soccer, racing, figure skating, and baseball
+- current short-form overlay system for title + subtitle + local TTS/BGM mix
 
 ## AI Org Features
 
@@ -188,12 +213,17 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 ```bash
 # backend
 cd backend
-RAA_FRONTEND_ORIGIN=http://127.0.0.1:8766 uvicorn app.main:app --host 127.0.0.1 --port 8765
+RAA_FRONTEND_ORIGIN=http://127.0.0.1:8876 uvicorn app.main:app --host 127.0.0.1 --port 8875
 
 # frontend
 cd frontend
-VITE_API_BASE_URL=http://127.0.0.1:8765 npm run dev -- --host 127.0.0.1 --port 8766
+VITE_API_BASE_URL=http://127.0.0.1:8875 npm run dev -- --host 127.0.0.1 --port 8876
 ```
+
+Current local convention in active development has been:
+
+- backend: `127.0.0.1:8875`
+- frontend: `127.0.0.1:8876`
 
 ## Whisper Notes
 
@@ -211,6 +241,31 @@ VITE_API_BASE_URL=http://127.0.0.1:8765 npm run dev -- --host 127.0.0.1 --port 8
 6. Export a vertical MP4. Export now runs as a background job from the clip review screen.
 7. Review the export from the exports page after the export job completes.
 8. Queue a mock publish job and monitor its result from the clip review page or publish queue.
+
+## Current Shorts Export Notes
+
+The current export pipeline does the following:
+
+- crops and scales to `1080x1920`
+- generates a fixed top title card
+- generates short subtitle cues
+- synthesizes local TTS aligned to subtitle cues
+- mixes source audio + TTS + generated BGM into the export
+
+Current styling intent:
+
+- large fixed title at the top
+- white text only
+- minimal decorative color
+- cleaner subtitle rhythm with shorter cues
+
+Current known gaps:
+
+- title / subtitle copy quality still needs more reference tuning for different channels
+- subtitle segmentation is better than before, but still heuristic
+- TTS is aligned to the generated subtitle cues, not phoneme-perfect
+- some source clips still need channel-specific formatting presets
+- current combat-sports style is the most tuned; other sports have the modeling base but need deeper polish
 
 Notes for YouTube URL ingest:
 
@@ -231,6 +286,20 @@ Combat sports strategy docs:
 
 - `docs/combat-sports-shortform-playbook.md`
 - `docs/combat-sports-preview.md`
+
+## Current Development Priorities
+
+If another agent picks this repo up now, the highest-value next steps are:
+
+1. make short-form copy generation more channel-specific and less generic
+2. improve subtitle segmentation so each cue feels like a natural Shorts beat
+3. add candidate-batch export so the user can compare 3 to 5 variants quickly
+4. add more style presets for different sports and creator personas
+5. harden YouTube ingest edge cases and media validation
+
+For exact handoff context, open:
+
+- `docs/ai-system/CURRENT_STATE.md`
 
 ## AI Organization
 
@@ -258,6 +327,26 @@ The AI roles are:
 - `python scripts/generate_issue_report.py`
 - `python scripts/generate_patch_bundle.py`
 - `python scripts/create_auto_pr.py`
+
+## GitHub Actions And Secrets
+
+Workflows:
+
+- `.github/workflows/agent-loop.yml`
+- `.github/workflows/issue-loop.yml`
+- `.github/workflows/auto-pr-loop.yml`
+- `.github/workflows/ci.yml`
+
+Secrets used by the AI automation layer:
+
+- `AI_API_URL`
+- `AI_API_KEY`
+- `AI_MODEL`
+- `AI_TEMPERATURE`
+- `AUTO_ISSUE_ENABLED`
+- `AUTO_PR_ENABLED`
+
+The repo is designed so the product app can run locally even if the AI automation secrets are missing. The app path and the AI org path are intentionally decoupled.
 
 These scripts use an OpenAI-compatible Chat Completions API through `scripts/common_llm.py` and store their outputs under `reports/`.
 By default, the workflows can fall back to GitHub Models with `GITHUB_TOKEN` if the AI configuration secrets are unset.
